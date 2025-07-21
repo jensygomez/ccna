@@ -1,0 +1,144 @@
+lab:
+  description: |
+    Laboratório para práctica de troubleshooting con router, switch y cliente Alpine.
+    Se ha introducido un error intencional para que el usuario pueda identificarlo paso a paso.
+  notes: |
+    Objetivo:
+    - Diagnosticar y corregir un problema de conectividad entre un cliente Alpine y un router Cisco.
+
+    Topología:
+    [Alpine] --- [SW1] --- [R1]
+
+    Herramientas de verificación recomendadas:
+    - show ip interface brief
+    - ip addr
+    - ping
+    - show vlan
+    - show mac address-table
+    - show run
+    - show cdp neighbors
+
+    ¡Recuerda seguir los pasos sin modificar todo de una vez!
+
+    Pasos de Diagnóstico:
+    1. Verifica la IP y la interfaz en la máquina Alpine con:
+       - `ip addr`
+       - `ip route`
+    2. Desde Alpine, intenta hacer ping a 192.168.1.1 (el gateway).
+    3. En el switch SW1, usa:
+       - `show mac address-table`
+       - `show vlan brief`
+       - `show interface status`
+    4. En el router R1, verifica:
+       - `show ip interface brief`
+       - `show running-config`
+    5. Asegúrate que las interfaces estén en "up/up" y con IP asignada.
+    6. Verifica si hay alguna configuración de VLAN que bloquee el tráfico.
+    7. Corrige el error detectado paso a paso (¡sin borrar todo!).
+    8. Una vez corregido, repite el `ping` desde Alpine al router.
+    9. Si el `ping` funciona, prueba conectividad más allá (si agregas más nodos).
+
+    Dica extra:
+    - Puedes capturar paquetes si necesitas con Wireshark desde CML.
+
+  title: Laboratorio 1 - Troubleshooting IP Básico
+  version: 0.3.0
+
+annotations:
+  - type: text
+    text_content: |
+      Cliente Alpine
+      ip link
+      sudo ip addr add 192.168.1.10/24 dev eth0
+      sudo ip link set eth0 up
+      sudo ip addr show dev eth0
+      sudo ip route add default via 192.168.1.1
+    text_font: monospace
+    text_size: 10
+    x1: 180.0
+    y1: -360.0
+
+  - type: text
+    text_content: |
+      Router Cisco
+      enable
+      configure terminal
+      hostname R1
+      interface Ethernet0/1
+       ip address 192.168.1.1 255.255.255.0
+       no shutdown
+       exit
+      end
+      write memory
+    text_font: monospace
+    text_size: 10
+    x1: -700.0
+    y1: -360.0
+
+nodes:
+  - id: n0
+    label: R1
+    node_definition: iol-xe
+    x: -400
+    y: -280
+    interfaces:
+      - id: i0
+        label: Loopback0
+        type: loopback
+      - id: i1
+        label: Ethernet0/0
+        slot: 0
+        type: physical
+      - id: i2
+        label: Ethernet0/1
+        slot: 1
+        type: physical
+      - id: i3
+        label: Ethernet0/2
+        slot: 2
+        type: physical
+
+  - id: n1
+    label: SW1
+    node_definition: ioll2-xe
+    x: -120
+    y: -280
+    interfaces:
+      - id: i0
+        label: Loopback0
+        type: loopback
+      - id: i1
+        label: Ethernet0/0
+        slot: 0
+        type: physical
+      - id: i2
+        label: Ethernet0/1
+        slot: 1
+        type: physical
+
+  - id: n2
+    label: alpine-0
+    node_definition: alpine
+    x: 120
+    y: -280
+    interfaces:
+      - id: i0
+        label: eth0
+        slot: 0
+        type: physical
+
+links:
+  - id: l0
+    n1: n1
+    i1: i2
+    n2: n0
+    i2: i1
+    label: SW1-E0/1 <-> R1-E0/1
+
+  - id: l1
+    n1: n2
+    i1: i0
+    n2: n1
+    i2: i1
+    label: Alpine-eth0 <-> SW1-E0/0
+
