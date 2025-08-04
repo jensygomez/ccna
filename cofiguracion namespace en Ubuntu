@@ -1,0 +1,54 @@
+sudo nano /root/setup_namespaces.sh
+
+#!/bin/bash
+
+# Crear namespace host1
+ip netns add host1
+ip link set eth1 netns host1
+ip netns exec host1 ip addr add 192.168.10.10/24 dev eth1
+ip netns exec host1 ip link set eth1 up
+ip netns exec host1 ip link set lo up
+
+# Crear namespace host2
+ip netns add host2
+ip link set eth2 netns host2
+ip netns exec host2 ip addr add 192.168.10.20/24 dev eth2
+ip netns exec host2 ip link set eth2 up
+ip netns exec host2 ip link set lo up
+
+
+sudo chmod +x /root/setup_namespaces.sh
+
+sudo nano /etc/systemd/system/netns-setup.service
+
+
+[Unit]
+Description=Configura namespaces de red para host1 y host2
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/root/setup_namespaces.sh
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable netns-setup.service
+
+
+
+sudo systemctl start netns-setup.service
+
+
+ip netns list
+sudo ip netns exec host1 ip addr
+sudo ip netns exec host2 ip addr
+
+# Probar ping entre los namespaces
+sudo ip netns exec host1 ping -c 3 192.168.10.20
