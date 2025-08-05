@@ -1,0 +1,29 @@
+Edge_R_01 es un Router enel nivel EDGE
+C_R_1 es un Router en el nivel de CORE
+D_SW_1 es un Switch capa 2 en el nivel DISTRIBUTION
+D_SW_2 es un Switch capa 2 en el nivel DISTRIBUTION
+A_SW_01 es un Switch Capa 2 en el nivel de ACCES
+PC_1 tiene como IP (cual recomiendas)
+PC_2 tiene como IP (cual recomiendas)
+PC_3 tiene como IP (cual recomiendas)
+PC_4 tiene como IP (cual recomiendas)
+
+
+Edge_R_01 en la interface G0/2 está conectado a C_R_1 en la interface G0/2
+
+C_R_1 en la interface G0/1 está conectado a D_SW_1 en la interface G0/0
+C_R_1 en la interface G0/2 está conectado a Edge_R_01 en la interface G0/2
+C_R_1 en la interface G0/3 está conectado a D_SW_2 en la interface G0/3
+
+D_SW_1 en la interface G0/0 stá conectado a C_R_1 en la interface G0/1
+D_SW_1 en la interface G2/0 stá conectado a D_SW_2 en la interface G2/0
+D_SW_1 en la interface G2/1 stá conectado a A_SW_01 en la interface G2/1
+
+D_SW_2 en la interface G0/3 stá conectado a C_R_1 en la interface G0/3
+D_SW_2 en la interface G2/0 stá conectado a D_SW_1 en la interface G2/0
+
+A_SW_01 en la interface G0/0 está conectado a PC_1 en la interface e1
+A_SW_01 en la interface G0/1 está conectado a PC_2 en la interface e2
+A_SW_01 en la interface G0/2 está conectado a PC_3 en la interface e3
+A_SW_01 en la interface G0/3 está conectado a PC_4 en la interface e4
+A_SW_01 en la interface G2/1 está conectado a D_SW_1 en la interface G2/1

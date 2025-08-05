@@ -1,0 +1,144 @@
+NET conectado a Edge-01 e0/0
+NET conectado a Edge-02 e0/0
+
+Edge-01 e0/0 conectado a NET
+Edge-01 e0/1 conectado a Edge-02 e0/1
+Edge-01 e0/2 conectado a Edge-02 e0/2
+Edge-01 e0/3 conectado a Core-04 e0/3
+Edge-01 e1/0 conectado a Core-03 e1/0
+Edge-01 e1/1 conectado a Core-05 e1/1
+Edge-01 e1/2 conectado a Core-06 e1/2
+
+Edge-02 e0/0 conectado a NET
+Edge-02 e0/1 conectado a Edge-01 e0/1
+Edge-02 e0/2 conectado a Edge-01 e0/2
+Edge-02 e0/3 conectado a Core-06 e0/3
+Edge-02 e1/0 conectado a Core-05 e1/0
+Edge-02 e1/1 conectado a Core-03 e1/1
+
+
+Core-03 e0/0 conectado a Core-04 e0/0
+Core-03 e0/1 conectado a Core-05 e0/1
+Core-03 e0/2 conectado a Core-06 e0/2
+Core-03 e0/3 conectado a Distri-07 e0/3
+Core-03 e1/0 conectado a Edge-01 e1/0
+Core-03 e1/1 conectado a Edge-02 e1/1
+
+Core-04 e0/0 conectado a Core-03 e0/0
+Core-04 e0/1 conectado a Core-06 e0/1
+Core-04 e0/2 conectado a Core-05 e0/2
+Core-04 e0/3 conectado a Edge-01 e0/3
+Core-04 e1/0 conectado a Distri-08 e1/0
+Core-04 e1/1 no conectado
+Core-04 e1/2 conectado a Distri-07 e1/2
+Core-04 e1/3 no conectado
+Core-04 e2/0 conectado a Distri-09 e2/0
+Core-04 e2/1 no conectado
+Core-04 e2/2 conectado a Distri-10 e2/2
+
+Core-05 e0/0 conectado a Core-06 e0/0
+Core-05 e0/1 conectado a Core-03 e0/1
+Core-05 e0/2 conectado a Core-04 e0/2
+Core-05 e0/3 conectado a Distri-09 e0/3
+Core-05 e1/0 conectado a Edge-02 e1/0
+Core-05 e1/1 conectado a Edge-01 e1/1
+Core-05 e1/2 no conectado
+Core-05 e1/3 no conectado
+Core-05 e2/0 conectado a Distri-08 e2/0
+Core-05 e2/1 conectado a Distri-10 e2/1
+
+Core-06 e0/0 conectado a Core-05 e0/0
+Core-06 e0/1 conectado a Core-04 e0/1
+Core-06 e0/2 conectado a Core-03 e0/2
+Core-06 e0/3 conectado a Edge-02 e0/3
+Core-06 e1/0 no conectado
+Core-06 e1/1 conectado a Distri-10 e1/1
+Core-06 e1/2 conectado a Edge-01 e1/2
+Core-06 e1/3 conectado a Distri-09 e1/3
+
+Distri-07 e0/0 conectado a Distri-08 e0/0
+Distri-07 e0/1 conectado a Distri-09 e0/1
+Distri-07 e0/2 conectado a Distri-10 e0/2
+Distri-07 e0/3 conectado a Core-03 e0/3
+Distri-07 e1/0 conectado a Acces-011 e1/0
+Distri-07 e1/1 conectado a Acces-011 e1/1
+Distri-07 e1/2 conectado a Core-04 e1/2
+
+Distri-08 e0/0 conectado a Distri-07 e0/0
+Distri-08 e0/1 no conectado
+Distri-08 e0/2 conectado a Distri-09 e0/2
+Distri-08 e0/3 conectado a Distri-10 e0/3
+Distri-08 e1/0 conectado a Core-04 e1/0 
+Distri-08 e1/1 conectado a Acces-012 e1/1 
+Distri-08 e1/2 conectado a Acces-012 e1/2
+Distri-08 e1/3 no conectado
+Distri-08 e2/0 conectado a Core-05 e2/0
+
+Distri-09 e0/0 conectado a Acces-013 e0/0 
+Distri-09 e0/1 conectado a Distri-07 e0/1
+Distri-09 e0/2 conectado a Distri-08 e0/2
+Distri-09 e0/3 conectado a Core-05 e0/3
+Distri-09 e1/0 conectado a Distri-10 e1/0
+Distri-09 e1/1 conectado a Acces-013 e1/1 
+Distri-09 e1/2 no conectado
+Distri-09 e1/3 conectado a Core-06 e1/3
+Distri-09 e2/0 conectado a Core-04 e2/0
+
+Distri-10 e0/0 conectado a Acces-014 e0/0 
+Distri-10 e0/1 conectado a Acces-014 e0/1
+Distri-10 e0/2 conectado a Distri-07 e0/2 
+Distri-10 e0/3 conectado a Distri-08 e0/3
+Distri-10 e1/0 conectado a Distri-09 e1/0
+Distri-10 e1/1 conectado a Core-06 e1/1
+Distri-10 e1/2 no conectado
+Distri-10 e1/3 no conectado
+Distri-10 e2/0 no conectado
+Distri-10 e2/1 conectado a Core-05 e2/1
+Distri-10 e2/2 conectado a Core-04 e2/2 
+
+
+Acces-011 e1/0 conectado a Distri-07 e1/0
+Acces-011 e1/1 conectado a Distri-07 e1/1
+Acces-011 e1/2 no conectado
+Acces-011 e2/0 no conectado
+Acces-011 e2/1 conectado a PC-015 eth0
+Acces-011 e2/2 conectado a PC-016 eth0
+Acces-011 e2/3 conectado a PC-017 eth0
+
+Acces-012 e1/0 no conectado
+Acces-012 e1/1 conectado a Distri-08 e1/1
+Acces-012 e1/2 conectado a Distri-08 e1/2
+Acces-012 e2/1 conectado a PC-018 eth0
+Acces-012 e2/2 conectado a PC-019 eth0
+Acces-012 e2/3 conectado a PC-020 eth0
+
+Acces-013 e0/0 conectado a Distri-09 e0/0
+Acces-013 e1/1 conectado a Distri-09 e1/1
+Acces-013 e2/1 conectado a PC-021 eth0
+Acces-013 e2/2 conectado a PC-022 eth0
+Acces-013 e2/3 conectado a PC-023 eth0
+
+Acces-014 e0/0 conectado a Distri-10 e0/0
+Acces-014 e0/1 conectado a Distri-10 e0/1
+Acces-014 e2/1 conectado a PC-024 eth0
+Acces-014 e2/2 conectado a PC-025 eth0
+Acces-014 e2/3 conectado a PC-026 eth0
+
+PC-015 eth0 conectado a Acces-011 e2/1
+PC-016 eth0 conectado a Acces-011 e2/2
+PC-017 eth0 conectado a Acces-011 e2/3
+
+PC-018 eth0 conectado a Acces-012 e2/1
+PC-019 eth0 conectado a Acces-012 e2/2
+PC-020 eth0 conectado a Acces-012 e2/3
+
+PC-021 eth0 conectado a Acces-013 e2/1
+PC-022 eth0 conectado a Acces-013 e2/2
+PC-023 eth0 conectado a Acces-013 e2/3
+
+PC-024 eth0 conectado a Acces-014 e2/1
+PC-025 eth0 conectado a Acces-014 e2/2
+PC-026 eth0 conectado a Acces-014 e2/3
+
+
+
