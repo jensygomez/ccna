@@ -147,6 +147,8 @@ EOF
         
         if [ "$CONFIG_MODE" == "netplan" ]; then
             echo "  Configurando $iface con IP estática (netplan)..."
+            # Convertir espacios a comas en los DNS para Netplan
+            dns_servers_comma=$(echo "$dns_servers" | tr ' ' ',')
             cat > "/etc/netplan/90-${iface}-config.yaml" <<EOF
 network:
   version: 2
@@ -157,7 +159,7 @@ network:
         - to: 0.0.0.0/0
           via: $gateway
       nameservers:
-        addresses: [$dns_servers]
+        addresses: [$dns_servers_comma]
 EOF
         else
             echo "  Configurando $iface con IP estática (interfaces)..."
@@ -190,8 +192,12 @@ echo -e "\n[+] Aplicando configuración..."
 if [ "$CONFIG_MODE" == "netplan" ]; then
     # Validar configuración netplan antes de aplicar
     if netplan generate; then
-        netplan apply
-        echo "Configuración aplicada con netplan correctamente"
+        if netplan apply; then
+            echo "Configuración aplicada con netplan correctamente"
+        else
+            echo "Error al aplicar netplan" >&2
+            exit 1
+        fi
     else
         echo "Error: La configuración de netplan no es válida" >&2
         exit 1
