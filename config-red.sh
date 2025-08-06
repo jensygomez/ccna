@@ -1,3 +1,14 @@
+# curl -s https://install.zerotier.com | sudo bash
+# sudo zerotier-cli join e4da7455b2cf1fc6
+________________________
+# sudo nano config-red.sh
+# chmod +x config-red.sh
+# sudo ./config-red.sh
+
+# ip addr show eth1
+# ip route show | grep eth1
+# ping -I eth1 -c 4 192.168.100.1
+
 #!/bin/bash
 
 # Verificar que se ejecute como root
