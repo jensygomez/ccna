@@ -49,6 +49,8 @@
     FINANZAS# write memory
 
 ## 🔹 Paso 3: Asignación de Interfaces en el Switch SAC
+| Puerto Switch      | Departamento         | VLAN |
+|--------------------|----------------------|------|
 | SAC      G1/0      | eth2 (e2)            | 20   |
 | SAC      G1/1      | eth3 (e3)            | 20   |
 
@@ -83,6 +85,8 @@
 
 
 ## 🔹 Paso 4: Asignación de Interfaces en el Switch IT
+| Puerto Switch      | Departamento         | VLAN |
+|--------------------|----------------------|------|
 | IT       G1/0      | eth4 (e4)            | 30   |
 | IT       G1/1      | eth5 (e5)            | 30   |
 
@@ -117,6 +121,8 @@
 
 
 ## 🔹 Paso 5: Asignación de Interfaces en el Switch GERENCIA
+| Puerto Switch      | Departamento         | VLAN |
+|--------------------|----------------------|------|
 | Gerencia G1/0      | eth6 (e6)            | 40   |
 | Gerencia Gi1/1     | eth7 (e7)            | 40   |
 
