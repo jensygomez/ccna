@@ -4,76 +4,153 @@
 ----------
 
 ## 🔹 Paso 1: Planificación de VLANs
-
-| Departamento         | Nombre VLAN       | ID VLAN | IP Gateway         |
+ 
+| Departamento         | Nombre VLAN       | ID VLAN | IP Gateway          |
 |----------------------|-------------------|---------|---------------------|
-| Finanzas             | VLAN10            | 10      | 192.168.10.1/24     |
-| Atención al Cliente  | VLAN20            | 20      | 192.168.20.1/24     |
-| IT                   | VLAN30            | 30      | 192.168.30.1/24     |
-| Gerencia             | VLAN40            | 40      | 192.168.40.1/24     |
+| FINANZAS             | VLAN 10           | 10      | 192.168.10.1/24     |
+| SAC                  | VLAN 20           | 20      | 192.168.20.1/24     |
+| IT                   | VLAN 30           | 30      | 192.168.30.1/24     |
+| GERENCIA             | VLAN 40           | 40      | 192.168.40.1/24     |
 
 
-## 🔹 Tabla 2: Asignación de Interfaces en el Switch L2 (SW1)
-| Puerto Switch | Departamento         | VLAN |
-|---------------|----------------------|------|
-| Gi0/0         | Finanzas (Host1)     | 10   |
-| Gi0/1         | Finanzas (Host2)     | 10   |
-| Gi0/2         | Atención Cliente     | 20   |
-| Gi0/3         | Atención Cliente     | 20   |
-| Gi1/0         | IT (Host5)           | 30   |
-| Gi1/1         | IT (Host6)           | 30   |
-| Gi1/2         | Gerencia (Host7)     | 40   |
-| Gi1/3         | Gerencia (Host8)     | 40   |
+## 🔹 Paso 2: Asignación de Interfaces en el Switch FINANZAS
+| Puerto Switch      | Departamento         | VLAN |
+|--------------------|----------------------|------|
+| FINANZAS G1/0      | eth0 (e0)            | 10   |
+| FINANZAS G1/1      | eth1 (e1)            | 10   |
 
-## ## 🔹 Paso 3: Configuración del Switch de Acceso (SW1)
+    Switch>
+    Switch> enable
+    Switch#
+    Switch# configure terminal
+    Switch(config)#hostname FINANZAS
+    FINANZAS(config)#
 
-    SW1> enable
-    SW1# configure terminal
-    ! Crear las VLANs
-    SW1(config)# vlan 10
-    SW1(config-vlan)# name Finanzas
-    SW1(config-vlan)# exit
-    
-    SW1(config)# vlan 20
-    SW1(config-vlan)# name AtencionCliente
-    SW1(config-vlan)# exit
-    
-    SW1(config)# vlan 30
-    SW1(config-vlan)# name IT
-    SW1(config-vlan)# exit
-    
-    SW1(config)# vlan 40
-    SW1(config-vlan)# name Gerencia
-    SW1(config-vlan)# exit
-    
+    FINANZAS(config)# vlan 10
+    FINANZAS(config-vlan)# name FINANZAS
+    FINANZAS(config-vlan)# exit
+
     ! Asignar puertos a cada VLAN
-    SW1(config)# interface range gi0/0 - 0/1
-    SW1(config-if-range)# switchport mode access
-    SW1(config-if-range)# switchport access vlan 10
-    SW1(config-if-range)# exit
+    FINANZAS(config)# interface range G1/0 - 1
+    FINANZAS(config-if-range)# switchport mode access
+    FINANZAS(config-if-range)# switchport access vlan 10
+    FINANZAS(config-if-range)# exit
+
+    ! Configurar el puerto TRUNK hacia el Dist_1
+    FINANZAS(config)# interface G0/0
+    FINANZAS(config-if)# switchport mode trunk
+    FINANZAS(config-if)# exit
     
-    SW1(config)# interface range gi0/2 - 0/3
-    SW1(config-if-range)# switchport mode access
-    SW1(config-if-range)# switchport access vlan 20
-    SW1(config-if-range)# exit
+    ! Configurar el puerto TRUNK hacia el Dist_2
+    FINANZAS(config)# interface G0/3
+    FINANZAS(config-if)# switchport mode trunk
+    FINANZAS(config-if)# exit
+    FINANZAS(config)# end
+    FINANZAS# write memory
+
+## 🔹 Paso 3: Asignación de Interfaces en el Switch SAC
+| SAC      G1/0      | eth2 (e2)            | 20   |
+| SAC      G1/1      | eth3 (e3)            | 20   |
+
+    Switch>
+    Switch> enable
+    Switch#
+    Switch# configure terminal
+    Switch(config)#hostname SAC
+    SAC(config)#
+
+    SAC(config)# vlan 20
+    SAC(config-vlan)# name SAC
+    SAC(config-vlan)# exit
+
+    ! Asignar puertos a cada VLAN
+    SAC(config)# interface range G1/0 - 1
+    SAC(config-if-range)# switchport mode access
+    SAC(config-if-range)# switchport access vlan 20
+    SAC(config-if-range)# exit
+
+    ! Configurar el puerto TRUNK hacia el Dist_1
+    SAC(config)# interface G0/1
+    SAC(config-if)# switchport mode trunk
+    SAC(config-if)# exit
     
-    SW1(config)# interface range gi1/0 - 1/1
-    SW1(config-if-range)# switchport mode access
-    SW1(config-if-range)# switchport access vlan 30
-    SW1(config-if-range)# exit
-    
-    SW1(config)# interface range gi1/2 - 1/3
-    SW1(config-if-range)# switchport mode access
-    SW1(config-if-range)# switchport access vlan 40
-    SW1(config-if-range)# exit
-    
-    ! Configurar el puerto TRUNK hacia el Switch Capa 3
-    SW1(config)# interface gi2/0
-    SW1(config-if)# switchport mode trunk
-    SW1(config-if)# exit
-    
-    SW1(config)# end
-    SW1# write memory
+    ! Configurar el puerto TRUNK hacia el Dist_2
+    SAC(config)# interface G0/2
+    SAC(config-if)# switchport mode trunk
+    SAC(config-if)# exit
+    SAC(config)# end
+    SAC# write memory
+
+
+## 🔹 Paso 4: Asignación de Interfaces en el Switch IT
+| IT       G1/0      | eth4 (e4)            | 30   |
+| IT       G1/1      | eth5 (e5)            | 30   |
+
+    Switch>
+    Switch> enable
+    Switch#
+    Switch# configure terminal
+    Switch(config)#hostname IT
+    IT(config)#
+
+    IT(config)# vlan 30
+    IT(config-vlan)# name IT
+    IT(config-vlan)# exit
+
+    ! Asignar puertos a cada VLAN
+    IT(config)# interface range G1/0 - 1
+    IT(config-if-range)# switchport mode access
+    IT(config-if-range)# switchport access vlan 30
+    IT(config-if-range)# exit
+
+    ! Configurar el puerto TRUNK hacia el Dist_1
+    IT(config)# interface G0/2
+    IT(config-if)# switchport mode trunk
+    IT(config-if)# exit
+
+    ! Configurar el puerto TRUNK hacia el Dist_2
+    IT(config)# interface G0/1
+    IT(config-if)# switchport mode trunk
+    IT(config-if)# exit
+    IT(config)# end
+    IT# write memory
+
+
+## 🔹 Paso 5: Asignación de Interfaces en el Switch GERENCIA
+| Gerencia G1/0      | eth6 (e6)            | 40   |
+| Gerencia Gi1/1     | eth7 (e7)            | 40   |
+
+
+    Switch>
+    Switch> enable
+    Switch#
+    Switch# configure terminal
+    Switch(config)#hostname GERENCIA
+    GERENCIA(config)#
+
+    GERENCIA(config)# vlan 40
+    GERENCIA(config-vlan)# name IT
+    GERENCIA(config-vlan)# exit
+
+    ! Asignar puertos a cada VLAN
+    GERENCIA(config)# interface range G1/0 - 1
+    GERENCIA(config-if-range)# switchport mode access
+    GERENCIA(config-if-range)# switchport access vlan 40
+    IT(config-if-range)# exit
+
+    ! Configurar el puerto TRUNK hacia el Dist_1
+    GERENCIA(config)# interface G0/3
+    GERENCIA(config-if)# switchport mode trunk
+    GERENCIA(config-if)# exit
+
+    ! Configurar el puerto TRUNK hacia el Dist_2
+    GERENCIA(config)# interface G0/0
+    GERENCIA(config-if)# switchport mode trunk
+    GERENCIA(config-if)# exit
+    GERENCIA(config)# end
+    GERENCIA# write memory
+
+
 
 
 
@@ -81,41 +158,45 @@
 __________________________
 
 
-## 🔹 Paso 4: Configuración del Switch Layer 3 (Router-on-a-Stick)
+## 🔹 Paso 6: Configuración del Dist_1
 
-    L3-SW> enable
-    L3-SW# configure terminal
+    Router>
+    Router> enable
+    Router#
+    Router# configure terminal
+    Routerno(config)#hostname Dist_1
+    Dist_1(config)#
     
     ! Activar el enrutamiento
-    L3-SW(config)# ip routing
+    Dist_1(config)# ip routing
     
     ! Subinterfaces por VLAN
-    L3-SW(config)# interface gigabitEthernet0/0.10
-    L3-SW(config-subif)# encapsulation dot1Q 10
-    L3-SW(config-subif)# ip address 192.168.10.1 255.255.255.0
-    L3-SW(config-subif)# exit
+    Dist_1(config)# interface gigabitEthernet0/0.10
+    Dist_1(config-subif)# encapsulation dot1Q 10
+    Dist_1(config-subif)# ip address 192.168.10.1 255.255.255.0
+    Dist_1(config-subif)# exit
     
-    L3-SW(config)# interface gigabitEthernet0/0.20
-    L3-SW(config-subif)# encapsulation dot1Q 20
-    L3-SW(config-subif)# ip address 192.168.20.1 255.255.255.0
-    L3-SW(config-subif)# exit
+    Dist_1(config)# interface gigabitEthernet0/0.20
+    Dist_1(config-subif)# encapsulation dot1Q 20
+    Dist_1(config-subif)# ip address 192.168.20.1 255.255.255.0
+    Dist_1(config-subif)# exit
     
-    L3-SW(config)# interface gigabitEthernet0/0.30
-    L3-SW(config-subif)# encapsulation dot1Q 30
-    L3-SW(config-subif)# ip address 192.168.30.1 255.255.255.0
-    L3-SW(config-subif)# exit
+    Dist_1(config)# interface gigabitEthernet0/0.30
+    Dist_1(config-subif)# encapsulation dot1Q 30
+    Dist_1(config-subif)# ip address 192.168.30.1 255.255.255.0
+    Dist_1(config-subif)# exit
     
-    L3-SW(config)# interface gigabitEthernet0/0.40
-    L3-SW(config-subif)# encapsulation dot1Q 40
-    L3-SW(config-subif)# ip address 192.168.40.1 255.255.255.0
-    L3-SW(config-subif)# exit
+    Dist_1(config)# interface gigabitEthernet0/0.40
+    Dist_1(config-subif)# encapsulation dot1Q 40
+    Dist_1(config-subif)# ip address 192.168.40.1 255.255.255.0
+    Dist_1(config-subif)# exit
     
-    L3-SW(config)# interface gigabitEthernet0/0
-    L3-SW(config-if)# no shutdown
-    L3-SW(config-if)# exit
+    Dist_1(config)# interface gigabitEthernet0/0
+    Dist_1(config-if)# no shutdown
+    Dist_1(config-if)# exit
     
-    L3-SW(config)# end
-    L3-SW# write memory
+    Dist_1(config)# end
+    Dist_1# write memory
 
 ## 🔹 Paso 5: Control de Comunicación entre VLANs (Opcional)
 Bloquear que Finanzas se comunique con Atención al Cliente:
