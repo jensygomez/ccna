@@ -2,7 +2,6 @@
 # 🧪 Laboratorio CCNA: Segmentación por VLAN y Enrutamiento Inter-VLAN con Control de Comunicación
 
 ----------
-
 ## 🔹 Paso 1: Planificación de VLANs
  
 | Departamento         | Nombre VLAN       | ID VLAN | IP Gateway          |
@@ -13,7 +12,151 @@
 | GERENCIA             | VLAN 40           | 40      | 192.168.40.1/24     |
 
 
-## 🔹 Paso 2: Asignación de Interfaces en el Switch FINANZAS
+## 🔹 Paso 2: Configuración del Router EDGE_1
+Este router será el punto de salida a Internet:
+
+    Router>
+    Router> enable
+    Router# configure terminal
+    Router(config)# hostname EDGE_1
+    EDGE_1(config)#
+
+    ! IP interna hacia Dist_1 (debe ser única en la red)
+    EDGE_1(config)# interface Gi0/0
+    EDGE_1(config-if)# ip address 192.168.100.2 255.255.255.0
+    EDGE_1(config-if)# no shutdown
+    EDGE_1(config-if)# exit
+
+    ! IP externa hacia ISP 1 (usamos bloque 200.1.1.0/30)
+    EDGE_1(config)# interface Gi0/1
+    EDGE_1(config-if)# ip address 200.1.1.1 255.255.255.252
+    EDGE_1(config-if)# no shutdown
+    EDGE_1(config-if)# exit
+
+    ! Ruta por defecto hacia ISP 1 (next-hop: 200.1.1.2)
+    EDGE_1(config)# ip route 0.0.0.0 0.0.0.0 200.1.1.2
+
+    ! Ruta estática para redes internas (ej: VLAN 10)
+    EDGE_1(config)# ip route 192.168.10.0 255.255.255.0 192.168.100.1
+    EDGE_1(config)# end
+    EDGE_1# write memory
+
+## 🔹 Paso 3: Configuración del Router EDGE_2
+Este router será el punto de salida a Internet:
+
+    Router>
+    Router> enable
+    Router# configure terminal
+    Router(config)# hostname EDGE_2
+    EDGE_2(config)#
+
+    ! IP interna hacia Dist_2 (debe ser única en la red)
+    EDGE_2(config)# interface Gi0/0
+    EDGE_2(config-if)# ip address 192.168.100.3 255.255.255.0  ! Cambiado a .3
+    EDGE_2(config-if)# no shutdown
+    EDGE_2(config-if)# exit
+
+    ! IP externa hacia ISP 2 (usamos bloque 200.1.1.4/30)
+    EDGE_2(config)# interface Gi0/1
+    EDGE_2(config-if)# ip address 200.1.1.5 255.255.255.252  ! Cambiado a .5
+    EDGE_2(config-if)# no shutdown
+    EDGE_2(config-if)# exit
+
+    ! Ruta por defecto hacia ISP 2 (next-hop: 200.1.1.6)
+    EDGE_2(config)# ip route 0.0.0.0 0.0.0.0 200.1.1.6
+
+    ! Ruta estática para redes internas (ej: VLAN 10)
+    EDGE_2(config)# ip route 192.168.10.0 255.255.255.0 192.168.100.1
+    EDGE_2(config)# end
+    EDGE_2# write memory
+
+## 🔹 Paso 4: Configuración del Dist_1
+
+    Router>
+    Router> enable
+    Router#
+    Router# configure terminal
+    Routerno(config)#hostname Dist_1
+    Dist_1(config)#
+    
+    ! Activar el enrutamiento
+    Dist_1(config)# ip routing
+    
+    ! Subinterfaces por VLAN
+    Dist_1(config)# interface Gi0/0.10
+    Dist_1(config-subif)# encapsulation dot1Q 10
+    Dist_1(config-subif)# ip address 192.168.10.1 255.255.255.0
+    Dist_1(config-if)# no shutdown
+    Dist_1(config-subif)# exit
+
+    Dist_1(config)# interface Gi0/1.20
+    Dist_1(config-subif)# encapsulation dot1Q 20
+    Dist_1(config-subif)# ip address 192.168.20.1 255.255.255.0
+    Dist_1(config-if)# no shutdown
+    Dist_1(config-subif)# exit
+    
+    Dist_1(config)# interface G0/2.30
+    Dist_1(config-subif)# encapsulation dot1Q 30
+    Dist_1(config-subif)# ip address 192.168.30.1 255.255.255.0
+    Dist_1(config-if)# no shutdown
+    Dist_1(config-subif)# exit
+    
+    Dist_1(config)# interface Gi0/3.40
+    Dist_1(config-subif)# encapsulation dot1Q 40
+    Dist_1(config-subif)# ip address 192.168.40.1 255.255.255.0
+    Dist_1(config-if)# no shutdown
+    Dist_1(config-subif)# exit
+        
+    
+    Dist_1(config)# end
+    Dist_1# write memory
+
+## 🔹 Paso 5: Configuración del Dist_2
+
+    Router>
+    Router> enable
+    Router#
+    Router# configure terminal
+    Routerno(config)#hostname Dist_2
+    Dist_2(config)#
+    
+    ! Activar el enrutamiento
+    Dist_2(config)# ip routing
+    
+    ! Subinterfaces por VLAN
+    Dist_2(config)# interface Gi0/3.10
+    Dist_2(config-subif)# encapsulation dot1Q 10
+    Dist_2(config-subif)# ip address 192.168.10.1 255.255.255.0
+    Dist_2(config-if)# no shutdown
+    Dist_2(config-subif)# exit
+
+    Dist_2(config)# interface Gi0/2.20
+    Dist_2(config-subif)# encapsulation dot1Q 20
+    Dist_2(config-subif)# ip address 192.168.20.1 255.255.255.0
+    Dist_2(config-if)# no shutdown
+    Dist_2(config-subif)# exit
+    
+    Dist_2(config)# interface G0/1.30
+    Dist_2(config-subif)# encapsulation dot1Q 30
+    Dist_2(config-subif)# ip address 192.168.30.1 255.255.255.0
+    Dist_2(config-if)# no shutdown
+    Dist_2(config-subif)# exit
+    
+    Dist_2(config)# interface Gi0/0.40
+    Dist_2(config-subif)# encapsulation dot1Q 40
+    Dist_2(config-subif)# ip address 192.168.40.1 255.255.255.0
+    Dist_2(config-if)# no shutdown
+    Dist_2(config-subif)# exit
+        
+    
+    Dist_2(config)# end
+    Dist_2# write memory
+
+
+
+
+
+## 🔹 Paso 6: Asignación de Interfaces en el Switch FINANZAS
 | Puerto Switch      | Departamento         | VLAN |
 |--------------------|----------------------|------|
 | FINANZAS G1/0      | eth0 (e0)            | 10   |
@@ -48,7 +191,7 @@
     FINANZAS(config)# end
     FINANZAS# write memory
 
-## 🔹 Paso 3: Asignación de Interfaces en el Switch SAC
+## 🔹 Paso 7: Asignación de Interfaces en el Switch SAC
 | Puerto Switch      | Departamento         | VLAN |
 |--------------------|----------------------|------|
 | SAC      G1/0      | eth2 (e2)            | 20   |
@@ -84,7 +227,7 @@
     SAC# write memory
 
 
-## 🔹 Paso 4: Asignación de Interfaces en el Switch IT
+## 🔹 Paso 8: Asignación de Interfaces en el Switch IT
 | Puerto Switch      | Departamento         | VLAN |
 |--------------------|----------------------|------|
 | IT       G1/0      | eth4 (e4)            | 30   |
@@ -120,7 +263,7 @@
     IT# write memory
 
 
-## 🔹 Paso 5: Asignación de Interfaces en el Switch GERENCIA
+## 🔹 Paso 9: Asignación de Interfaces en el Switch GERENCIA
 | Puerto Switch      | Departamento         | VLAN |
 |--------------------|----------------------|------|
 | Gerencia G1/0      | eth6 (e6)            | 40   |
@@ -164,82 +307,52 @@
 __________________________
 
 
-## 🔹 Paso 6: Configuración del Dist_1
 
-    Router>
-    Router> enable
-    Router#
-    Router# configure terminal
-    Routerno(config)#hostname Dist_1
-    Dist_1(config)#
-    
-    ! Activar el enrutamiento
-    Dist_1(config)# ip routing
-    
-    ! Subinterfaces por VLAN
-    Dist_1(config)# interface gigabitEthernet0/0.10
-    Dist_1(config-subif)# encapsulation dot1Q 10
-    Dist_1(config-subif)# ip address 192.168.10.1 255.255.255.0
-    Dist_1(config-subif)# exit
-    
-    Dist_1(config)# interface gigabitEthernet0/0.20
-    Dist_1(config-subif)# encapsulation dot1Q 20
-    Dist_1(config-subif)# ip address 192.168.20.1 255.255.255.0
-    Dist_1(config-subif)# exit
-    
-    Dist_1(config)# interface gigabitEthernet0/0.30
-    Dist_1(config-subif)# encapsulation dot1Q 30
-    Dist_1(config-subif)# ip address 192.168.30.1 255.255.255.0
-    Dist_1(config-subif)# exit
-    
-    Dist_1(config)# interface gigabitEthernet0/0.40
-    Dist_1(config-subif)# encapsulation dot1Q 40
-    Dist_1(config-subif)# ip address 192.168.40.1 255.255.255.0
-    Dist_1(config-subif)# exit
-    
-    Dist_1(config)# interface gigabitEthernet0/0
-    Dist_1(config-if)# no shutdown
-    Dist_1(config-if)# exit
-    
-    Dist_1(config)# end
-    Dist_1# write memory
 
-## 🔹 Paso 5: Control de Comunicación entre VLANs (Opcional)
+## 🔹 Paso 10: Control de Comunicación entre VLANs DIST_1
 Bloquear que Finanzas se comunique con Atención al Cliente:
+! Bloquear comunicación entre VLAN 10 (Finanzas) y VLAN 20 (SAC)
+Dist_1(config)# ip access-list extended BLOQUEAR_FINANZAS_SAC
+Dist_1(config-ext-nacl)# deny ip 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255
+Dist_1(config-ext-nacl)# deny ip 192.168.20.0 0.0.0.255 192.168.10.0 0.0.0.255
+Dist_1(config-ext-nacl)# permit ip any any  ! Permite todo el resto de tráfico
+Dist_1(config-ext-nacl)# exit
 
-    L3-SW(config)# access-list 100 deny ip 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255
-    L3-SW(config)# access-list 100 permit ip any any
-    
-    L3-SW(config)# interface gigabitEthernet0/0.10
-    L3-SW(config-subif)# ip access-group 100 in
-    L3-SW(config-subif)# exit
+! Aplicar ACL a las subinterfaces afectadas
+Dist_1(config)# interface Gi0/0.10  ! Subinterfaz VLAN 10
+Dist_1(config-subif)# ip access-group BLOQUEAR_FINANZAS_SAC in
+Dist_1(config-subif)# exit
 
-## 🔹 Paso 6: Configuración del Router Edge
-Este router será el punto de salida a Internet:
+Dist_1(config)# interface Gi0/1.20  ! Subinterfaz VLAN 20
+Dist_1(config-subif)# ip access-group BLOQUEAR_FINANZAS_SAC in
+Dist_1(config-subif)# exit
 
-    EDGE-RTR> enable
-    EDGE-RTR# configure terminal
-    
-    ! IP interna hacia el L3-SW
-    EDGE-RTR(config)# interface gi0/0
-    EDGE-RTR(config-if)# ip address 192.168.100.2 255.255.255.0
-    EDGE-RTR(config-if)# no shutdown
-    EDGE-RTR(config-if)# exit
-    
-    ! IP externa hacia el proveedor (simulado)
-    EDGE-RTR(config)# interface gi0/1
-    EDGE-RTR(config-if)# ip address 200.1.1.1 255.255.255.252
-    EDGE-RTR(config-if)# no shutdown
-    EDGE-RTR(config-if)# exit
-    
-    ! Ruta por defecto
-    EDGE-RTR(config)# ip route 0.0.0.0 0.0.0.0 200.1.1.2
-    EDGE-RTR(config)# end
-    EDGE-RTR# write memory
+! Opcional: Bloquear VLAN 10 -> VLAN 30 (IT) si es necesario
+Dist_1(config)# ip access-list extended BLOQUEAR_FINANZAS_IT
+Dist_1(config-ext-nacl)# deny ip 192.168.10.0 0.0.0.255 192.168.30.0 0.0.0.255
+Dist_1(config-ext-nacl)# permit ip any any
+Dist_1(config-ext-nacl)# exit
+Dist_1(config)# interface Gi0/0.10
+Dist_1(config-subif)# ip access-group BLOQUEAR_FINANZAS_IT in
 
 
 
-## 🔹 Paso 7: Enrutamiento Estático en el L3-SW (si es necesario)
 
-    L3-SW(config)# ip route 0.0.0.0 0.0.0.0 192.168.100.2
+## 🔹 Paso 11: Control de Comunicación entre VLANs DIST_1
+! Configuración simétrica a Dist_1 (para redundancia)
+Dist_2(config)# ip access-list extended BLOQUEAR_FINANZAS_SAC
+Dist_2(config-ext-nacl)# deny ip 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255
+Dist_2(config-ext-nacl)# deny ip 192.168.20.0 0.0.0.255 192.168.10.0 0.0.0.255
+Dist_2(config-ext-nacl)# permit ip any any
+Dist_2(config-ext-nacl)# exit
 
+! Aplicar ACLs
+Dist_2(config)# interface Gi0/3.10  ! VLAN 10
+Dist_2(config-subif)# ip access-group BLOQUEAR_FINANZAS_SAC in
+Dist_2(config-subif)# exit
+
+Dist_2(config)# interface Gi0/2.20  ! VLAN 20
+Dist_2(config-subif)# ip access-group BLOQUEAR_FINANZAS_SAC in
+Dist_2(config-subif)# exit
+
+## 🔹 Paso 10: Control de Comunicación entre VLANs DIST_1
