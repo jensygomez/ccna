@@ -2,6 +2,21 @@
 # 🧪 Laboratorio CCNA: Segmentación por VLAN y Enrutamiento Inter-VLAN con Control de Comunicación
 
 ----------
+## 🔹 Paso 1: Ip para interfaces PC_01
+
+| Interfaz (ethx)   | VLAN | Dirección IP     | Máscara         | Gateway         |
+|-------------------|------|------------------|-----------------|-----------------|
+| eth0 (FINANZAS)   | 10   | 192.168.10.11    | 255.255.255.0   | 192.168.10.1    |
+| eth1 (FINANZAS)   | 10   | 192.168.10.12    | 255.255.255.0   | 192.168.10.1    |
+| eth2 (SAC)        | 20   | 192.168.20.11    | 255.255.255.0   | 192.168.20.1    |
+| eth3 (SAC)        | 20   | 192.168.20.12    | 255.255.255.0   | 192.168.20.1    |
+| eth4 (IT)         | 30   | 192.168.30.11    | 255.255.255.0   | 192.168.30.1    |
+| eth5 (IT)         | 30   | 192.168.30.12    | 255.255.255.0   | 192.168.30.1    |
+| eth6 (GERENCIA)   | 40   | 192.168.40.11    | 255.255.255.0   | 192.168.40.1    |
+| eth7 (GERENCIA)   | 40   | 192.168.40.12    | 255.255.255.0   | 192.168.40.1    |
+
+
+
 ## 🔹 Paso 1: Planificación de VLANs
  
 | Departamento         | Nombre VLAN       | ID VLAN | IP Gateway          |
