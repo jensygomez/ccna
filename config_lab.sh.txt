@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Configuración estática para interfaces según VLANs de laboratorio CCNA
+
+# Ejecutar como root
+if [ "$(id -u)" -ne 0 ]; then
+  echo "Ejecuta este script como root."
+  exit 1
+fi
+
+# Configuraciones de interfaces
+# Formato: interfaz IP_CIDR GATEWAY
+config_interfaces=(
+  "eth0 192.168.10.11/24 192.168.10.1"
+  "eth1 192.168.10.12/24 192.168.10.1"
+  "eth2 192.168.20.11/24 192.168.20.1"
+  "eth3 192.168.20.12/24 192.168.20.1"
+  "eth4 192.168.30.11/24 192.168.30.1"
+  "eth5 192.168.30.12/24 192.168.30.1"
+  "eth6 192.168.40.11/24 192.168.40.1"
+  "eth7 192.168.40.12/24 192.168.40.1"
+)
+
+# DNS por defecto
+dns_servers="8.8.8.8 8.8.4.4"
+
+echo "[+] Configurando interfaces de red..."
+
+for entry in "${config_interfaces[@]}"; do
+  iface=$(echo "$entry" | cut -d' ' -f1)
+  ip_cidr=$(echo "$entry" | cut -d' ' -f2)
+  gw=$(echo "$entry" | cut -d' ' -f3)
+
+  echo "Configurando $iface con IP $ip_cidr y gateway $gw..."
+
+  # Bajar interfaz
+  ip link set dev "$iface" down 2>/dev/null
+
+  # Asignar IP
+  ip addr flush dev "$iface"
+  ip addr add "$ip_cidr" dev "$iface"
+
+  # Subir interfaz
+  ip link set dev "$iface" up
+
+  # Añadir ruta por defecto para esta interfaz (IMPORTANTE: sólo una ruta por defecto general, esta es simplificada)
+  # Aquí asumo que el gateway del router es la puerta de enlace general
+  ip route del default dev "$iface" 2>/dev/null
+  ip route add default via "$gw" dev "$iface"
+
+done
+
+# Configurar DNS en /etc/resolv.conf (puede ser temporal, depende del sistema)
+echo "nameserver 8.8.8.8" > /etc/resolv.conf
+echo "nameserver 8.8.4.4" >> /etc/resolv.conf
+
+echo "[+] Configuración completada."
+echo "Verifica con: ip addr show y ip route show"
+
+exit 0
