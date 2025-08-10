@@ -15,60 +15,80 @@
 ## 🔹 Paso 2: Configuración del Router EDGE_1
 Este router será el punto de salida a Internet:
 
-    Router>
-    Router> enable
-    Router# configure terminal
-    Router(config)# hostname EDGE_1
-    EDGE_1(config)#
+Router> enable
+Router# configure terminal
+Router(config)# hostname EDGE_1
+EDGE_1(config)#
 
-    ! IP interna hacia Dist_1 (debe ser única en la red)
-    EDGE_1(config)# interface Gi0/0
-    EDGE_1(config-if)# ip address 192.168.100.2 255.255.255.0
-    EDGE_1(config-if)# no shutdown
-    EDGE_1(config-if)# exit
+! Conexión a ISP (WAN - DHCP)
+EDGE_1(config)# interface Gi0/1
+EDGE_1(config-if)# ip address dhcp 
+EDGE_1(config-if)# no shutdown
+EDGE_1(config-if)# exit
 
-    ! IP externa hacia ISP 1 (usamos bloque 200.1.1.0/30)
-    EDGE_1(config)# interface Gi0/1
-    EDGE_1(config-if)# ip address 200.1.1.1 255.255.255.252
-    EDGE_1(config-if)# no shutdown
-    EDGE_1(config-if)# exit
+! Conexión a Dist_1 (LAN - IP estática)
+EDGE_1(config)# interface Gi0/0
+EDGE_1(config-if)# ip address 192.168.100.2 255.255.255.0
+EDGE_1(config-if)# no shutdown
+EDGE_1(config-if)# exit
 
-    ! Ruta por defecto hacia ISP 1 (next-hop: 200.1.1.2)
-    EDGE_1(config)# ip route 0.0.0.0 0.0.0.0 200.1.1.2
+! NAT para VLANs
+EDGE_1(config)# ip nat inside source list 1 interface Gi0/1 overload
+EDGE_1(config)# access-list 1 permit 192.168.10.0 0.0.0.255
+EDGE_1(config)# access-list 1 permit 192.168.20.0 0.0.0.255
+EDGE_1(config)# access-list 1 permit 192.168.30.0 0.0.0.255
+EDGE_1(config)# access-list 1 permit 192.168.40.0 0.0.0.255
 
-    ! Ruta estática para redes internas (ej: VLAN 10)
-    EDGE_1(config)# ip route 192.168.10.0 255.255.255.0 192.168.100.1
-    EDGE_1(config)# end
-    EDGE_1# write memory
+! Marcado de interfaces NAT
+EDGE_1(config)# interface Gi0/0
+EDGE_1(config-if)# ip nat inside
+EDGE_1(config-if)# interface Gi0/1
+EDGE_1(config-if)# ip nat outside
+EDGE_1(config-if)# end
+
+! Verificaciones
+EDGE_1# show access-lists  ! Verifica las redes permitidas
+EDGE_1# show ip nat translations  ! Debe estar vacío hasta que haya tráfico
+
+
+
 
 ## 🔹 Paso 3: Configuración del Router EDGE_2
-Este router será el punto de salida a Internet:
+Router> enable
+Router# configure terminal
+Router(config)# hostname EDGE_2
+EDGE_2(config)#
 
-    Router>
-    Router> enable
-    Router# configure terminal
-    Router(config)# hostname EDGE_2
-    EDGE_2(config)#
+! Conexión a ISP2 (WAN - DHCP o IP estática)
+EDGE_2(config)# interface Gi0/1
+EDGE_2(config-if)# ip address dhcp  ! O usa IP estática si tu ISP2 lo requiere
+EDGE_2(config-if)# no shutdown
+EDGE_2(config-if)# exit
 
-    ! IP interna hacia Dist_2 (debe ser única en la red)
-    EDGE_2(config)# interface Gi0/0
-    EDGE_2(config-if)# ip address 192.168.100.3 255.255.255.0  ! Cambiado a .3
-    EDGE_2(config-if)# no shutdown
-    EDGE_2(config-if)# exit
+! Conexión a Dist_2 (LAN - IP estática, diferente a EDGE_1)
+EDGE_2(config)# interface Gi0/0
+EDGE_2(config-if)# ip address 192.168.100.3 255.255.255.0  ! Única en la red
+EDGE_2(config-if)# no shutdown
+EDGE_2(config-if)# exit
 
-    ! IP externa hacia ISP 2 (usamos bloque 200.1.1.4/30)
-    EDGE_2(config)# interface Gi0/1
-    EDGE_2(config-if)# ip address 200.1.1.5 255.255.255.252  ! Cambiado a .5
-    EDGE_2(config-if)# no shutdown
-    EDGE_2(config-if)# exit
+! NAT para VLANs (mismo ACL que EDGE_1, pero con interfaz Gi0/1 de EDGE_2)
+EDGE_2(config)# ip nat inside source list 1 interface Gi0/1 overload
+EDGE_2(config)# access-list 1 permit 192.168.10.0 0.0.0.255
+EDGE_2(config)# access-list 1 permit 192.168.20.0 0.0.0.255
+EDGE_2(config)# access-list 1 permit 192.168.30.0 0.0.0.255
+EDGE_2(config)# access-list 1 permit 192.168.40.0 0.0.0.255
 
-    ! Ruta por defecto hacia ISP 2 (next-hop: 200.1.1.6)
-    EDGE_2(config)# ip route 0.0.0.0 0.0.0.0 200.1.1.6
+! Marcado de interfaces NAT
+EDGE_2(config)# interface Gi0/0
+EDGE_2(config-if)# ip nat inside
+EDGE_2(config-if)# interface Gi0/1
+EDGE_2(config-if)# ip nat outside
+EDGE_2(config-if)# end
 
-    ! Ruta estática para redes internas (ej: VLAN 10)
-    EDGE_2(config)# ip route 192.168.10.0 255.255.255.0 192.168.100.1
-    EDGE_2(config)# end
-    EDGE_2# write memory
+! Verificaciones clave
+EDGE_2# show ip interface brief  ! Gi0/0 y Gi0/1 deben estar up/up
+EDGE_2# show ip route  ! Debe mostrar la ruta por defecto via Gi0/1
+EDGE_2# ping 8.8.8.8  ! Prueba conectividad a Internet (sin NAT aún)
 
 ## 🔹 Paso 4: Configuración del Dist_1
 
