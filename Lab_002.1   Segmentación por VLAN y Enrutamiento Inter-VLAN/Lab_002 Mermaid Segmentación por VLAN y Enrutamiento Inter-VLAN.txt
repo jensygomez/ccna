@@ -1,0 +1,75 @@
+flowchart TD
+
+    %% CORE / EDGE Layer
+    Internet1["Internet ISP 1"]
+    Internet2["Internet ISP 2"]
+    EDGE1["Router EDGE 1"]
+    EDGE2["Router EDGE 2"]
+
+    Internet1  -- "→  Gi0/1"  --> EDGE1
+    Internet2  -- "→  Gi0/1" --> EDGE2
+
+    %% Distribution Layer
+    subgraph Distribution ["Distribution Layer, Routers"]
+        direction TB
+        Dist1["Dist_1"]
+        Dist2["Dist_2"]
+    end
+
+    EDGE1 -- "Gi0/0  →  Gi0/4"  --> Dist1
+    EDGE2 -- "Gi0/0  →  Gi0/4" --> Dist2
+
+    %% Access Layer
+    subgraph Access ["Access Layer"]
+        direction TB
+        Finanzas["FINANZAS"]
+        SAC["SAC"]
+        IT["IT"]
+        Gerencia["GERENCIA"]
+    end
+
+    %% Redundant links from Distribution to Access
+    Dist1 -- "Gi0/0  →  Gi0/0" --> Finanzas
+    Dist2 -- "Gi0/3  →  Gi0/3" --> Finanzas
+
+    Dist1 -- "Gi0/1  →  Gi0/1" --> SAC
+    Dist2 -- "Gi0/2  →  Gi0/2" --> SAC
+
+    Dist1 -- "Gi0/2  →  Gi0/2"  --> IT
+    Dist2 -- "Gi0/1  →  Gi0/1"  --> IT
+
+    Dist1 -- "Gi0/3  →  Gi0/3"   --> Gerencia
+    Dist2 -- "Gi0/0  →  Gi0/0"  --> Gerencia
+
+    %% PC_01 Layer
+    subgraph PC_01 ["PC_01"]
+        direction TB
+        eth0["eth0"]
+        eth1["eth1"]
+        eth2["eth2"]
+        eth3["eth3"]
+        eth4["eth4"]
+        eth5["eth5"]
+        eth6["eth6"]
+        eth7["eth7"]
+        eth8["eth8"]
+    end
+
+
+    %% Finanzas ↔ PC_01
+    Finanzas -- "G1/0 → e0" --> eth0
+    Finanzas -- "G1/1 → e1" --> eth1
+
+    %% SAC ↔ PC_01
+    SAC -- "G1/0 → e2" --> eth2
+    SAC -- "G1/1 → e3" --> eth3
+
+    %% IT ↔ PC_01
+    IT -- "G1/0 → e4" --> eth4
+    IT -- "G1/1 → e5" --> eth5
+
+    %% Gerencia ↔ PC_01
+    Gerencia -- "G1/0 → e6" --> eth6
+    Gerencia -- "G1/1 → e7" --> eth7
+
+    eth8 --> Nube

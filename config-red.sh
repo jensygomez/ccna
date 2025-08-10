@@ -1,7 +1,10 @@
 # curl -s https://install.zerotier.com | sudo bash
 # sudo zerotier-cli join e4da7455b2cf1fc6
-________________________
+#________________________
 # sudo nano config-red.sh
+# apt install -y dos2unix  
+# dos2unix config-red.sh
+
 # chmod +x config-red.sh
 # sudo ./config-red.sh
 
@@ -55,7 +58,16 @@ fi
 
 echo -e "\n[+] Interfaces de red disponibles:"
 for i in "${!interfaces[@]}"; do
-    echo "$((i+1)). ${interfaces[$i]}"
+    iface="${interfaces[$i]}"
+    ip_info=$(ip -o -f inet addr show "$iface" | awk '{print $4}')
+    gw_info=$(ip route show dev "$iface" | awk '/default/ {print $3}')
+    dns_info=$(grep "nameserver" /etc/resolv.conf | awk '{print $2}' | tr '\n' ' ')
+    
+    [ -z "$ip_info" ] && ip_info="Sin IP"
+    [ -z "$gw_info" ] && gw_info="Sin gateway"
+    [ -z "$dns_info" ] && dns_info="Sin DNS"
+    
+    echo "$((i+1)). $iface | IP: $ip_info | Gateway: $gw_info | DNS: $dns_info"
 done
 
 # Preguntar si configurar todas las interfaces
@@ -93,7 +105,6 @@ fi
 for iface in "${interfaces_to_config[@]}"; do
     echo -e "\n--- Configurando interfaz $iface ---"
     
-    # Preguntar por DHCP o estático
     while true; do
         read -p "¿Configurar $iface con DHCP? (s/n): " use_dhcp
         if [[ "$use_dhcp" =~ ^[SsNn]$ ]]; then
@@ -103,9 +114,7 @@ for iface in "${interfaces_to_config[@]}"; do
     done
     
     if [[ "$use_dhcp" =~ ^[Ss]$ ]]; then
-        # Configuración DHCP
         if [ "$CONFIG_MODE" == "netplan" ]; then
-            echo "  Configurando $iface con DHCP (netplan)..."
             cat > "/etc/netplan/90-${iface}-config.yaml" <<EOF
 network:
   version: 2
@@ -115,7 +124,6 @@ network:
       optional: true
 EOF
         else
-            echo "  Configurando $iface con DHCP (interfaces)..."
             cat >> "/etc/network/interfaces" <<EOF
 
 auto $iface
@@ -123,10 +131,9 @@ iface $iface inet dhcp
 EOF
         fi
     else
-        # Configuración estática
         while true; do
             read -p "Ingresa la IP para $iface (ej. 192.168.1.10/24): " ip_addr
-            if [[ "$ip_addr" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]] && validate_ip "${ip_addr%/*}"; then
+            if [[ "$ip_addr" =~ ^[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]] && validate_ip "${ip_addr%/*}"; then
                 break
             else
                 echo "Formato de IP inválido. Usa formato CIDR (ej. 192.168.1.10/24)"
@@ -144,7 +151,6 @@ EOF
 
         while true; do
             read -p "Ingresa los DNS (separados por espacios, ej. 8.8.8.8 8.8.4.4): " dns_servers
-            # Validar cada DNS ingresado
             invalid_dns=0
             for dns in $dns_servers; do
                 if ! validate_ip "$dns"; then
@@ -157,8 +163,6 @@ EOF
         done
         
         if [ "$CONFIG_MODE" == "netplan" ]; then
-            echo "  Configurando $iface con IP estática (netplan)..."
-            # Convertir espacios a comas en los DNS para Netplan
             dns_servers_comma=$(echo "$dns_servers" | tr ' ' ',')
             cat > "/etc/netplan/90-${iface}-config.yaml" <<EOF
 network:
@@ -173,8 +177,6 @@ network:
         addresses: [$dns_servers_comma]
 EOF
         else
-            echo "  Configurando $iface con IP estática (interfaces)..."
-            # Calcular máscara de red
             netmask=$(ipcalc -m $ip_addr | cut -d'=' -f2)
             cat >> "/etc/network/interfaces" <<EOF
 
@@ -201,16 +203,10 @@ done
 # Aplicar cambios
 echo -e "\n[+] Aplicando configuración..."
 if [ "$CONFIG_MODE" == "netplan" ]; then
-    # Validar configuración netplan antes de aplicar
-    if netplan generate; then
-        if netplan apply; then
-            echo "Configuración aplicada con netplan correctamente"
-        else
-            echo "Error al aplicar netplan" >&2
-            exit 1
-        fi
+    if netplan generate && netplan apply; then
+        echo "Configuración aplicada con netplan correctamente"
     else
-        echo "Error: La configuración de netplan no es válida" >&2
+        echo "Error al aplicar netplan" >&2
         exit 1
     fi
 else

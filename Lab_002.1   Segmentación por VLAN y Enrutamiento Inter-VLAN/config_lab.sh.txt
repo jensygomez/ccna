@@ -1,0 +1,122 @@
+#!/bin/bash
+# Configuración automática de interfaces para laboratorio
+
+# ===== CONFIGURACIÓN DEL LABORATORIO =====
+# Formato: interfaz VLAN IP máscara gateway
+CONFIG=(
+  "eth0 10 192.168.10.11 24 192.168.10.1"
+  "eth1 10 192.168.10.12 24 192.168.10.1"
+  "eth2 20 192.168.20.11 24 192.168.20.1"
+  "eth3 20 192.168.20.12 24 192.168.20.1"
+  "eth4 30 192.168.30.11 24 192.168.30.1"
+  "eth5 30 192.168.30.12 24 192.168.30.1"
+  "eth6 40 192.168.40.11 24 192.168.40.1"
+  "eth7 40 192.168.40.12 24 192.168.40.1"
+)
+
+# ===== FUNCIONES =====
+validate_ip() {
+    local ip=$1
+    local IFS=.
+    local -a octets
+    read -r -a octets <<< "$ip"
+
+    [[ ${#octets[@]} -eq 4 ]] || return 1
+    for octet in "${octets[@]}"; do
+        [[ $octet =~ ^[0-9]+$ ]] || return 1
+        ((octet >= 0 && octet <= 255)) || return 1
+    done
+    return 0
+}
+
+ip_to_int() {
+    local IFS=.
+    local a b c d
+    read -r a b c d <<< "$1"
+    echo $(( (a << 24) + (b << 16) + (c << 8) + d ))
+}
+
+ip_in_subnet() {
+    local ip=$1
+    local subnet=$2
+    local subnet_ip mask_len
+
+    IFS='/' read -r subnet_ip mask_len <<< "$subnet"
+
+    validate_ip "$ip" || return 1
+    validate_ip "$subnet_ip" || return 1
+
+    local ip_int=$(ip_to_int "$ip")
+    local subnet_int=$(ip_to_int "$subnet_ip")
+    local mask_int=$(( 0xFFFFFFFF << (32 - mask_len) & 0xFFFFFFFF ))
+
+    if (( (ip_int & mask_int) == (subnet_int & mask_int) )); then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# ===== DETECTAR NETPLAN =====
+if command -v netplan &>/dev/null; then
+    echo "[+] Usando netplan"
+    USE_NETPLAN=1
+    NETPLAN_DIR="/etc/netplan"
+else
+    echo "[+] Usando /etc/network/interfaces"
+    USE_NETPLAN=0
+fi
+
+# ===== PROCESAR CONFIGURACIÓN =====
+for entry in "${CONFIG[@]}"; do
+    read -r IFACE VLAN IP MASK GW <<< "$entry"
+    echo ""
+    echo "[+] Procesando $IFACE VLAN $VLAN IP $IP/$MASK Gateway $GW"
+
+    SUBNET_IP="192.168.${VLAN}.0/$MASK"
+
+    if ! ip_in_subnet "$IP" "$SUBNET_IP"; then
+        echo "  ERROR: IP $IP no pertenece a la subnet $SUBNET_IP de VLAN $VLAN"
+        continue
+    fi
+
+    if [[ $USE_NETPLAN -eq 1 ]]; then
+        FILE="$NETPLAN_DIR/${IFACE}.yaml"
+        cat > "$FILE" <<EOF
+network:
+  version: 2
+  ethernets:
+    $IFACE:
+      dhcp4: no
+      addresses: [$IP/$MASK]
+      gateway4: $GW
+      nameservers:
+        addresses: [8.8.8.8,8.8.4.4]
+EOF
+        echo "  [OK] Archivo netplan creado: $FILE"
+    else
+        echo "" >> /etc/network/interfaces
+        echo "auto $IFACE" >> /etc/network/interfaces
+        echo "iface $IFACE inet static" >> /etc/network/interfaces
+        echo "    address $IP" >> /etc/network/interfaces
+        echo "    netmask 255.255.255.0" >> /etc/network/interfaces
+        echo "    gateway $GW" >> /etc/network/interfaces
+        echo "  [OK] Configuración añadida a /etc/network/interfaces"
+    fi
+done
+
+# ===== APLICAR CONFIGURACIÓN =====
+echo ""
+echo "[+] Aplicando configuración..."
+if [[ $USE_NETPLAN -eq 1 ]]; then
+    netplan apply
+else
+    systemctl restart networking
+fi
+
+echo "[OK] Configuración aplicada."
+echo ""
+echo "Verifica con:"
+echo "  ip addr show"
+echo "  ip route show"
+
