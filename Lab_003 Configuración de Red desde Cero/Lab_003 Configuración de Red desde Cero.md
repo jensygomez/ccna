@@ -1,18 +1,18 @@
-﻿## **🔹 PASO 1: Planificación de VLANs y Direccionamiento**
+## 🔹 PASO 1: Planificación de VLANs y Direccionamiento
 
-## 🖥️ **Tabla de Configuración de Dispositivos por VLAN**
-
-| Dispositivo | VLAN | Nombre VLAN | Configuración IP (Formato CLI) | 
-|-------------|-------|--------------|----------------------------------------------------| 
-| PC_01 | 10 | Usuarios | `ip 192.168.10.10 255.255.255.0 192.168.10.1` |
-| PC_02 | 10 | Usuarios | `ip 192.168.10.11 255.255.255.0 192.168.10.1` |
-| PC_03 | 20 | Administración| `ip 192.168.20.10 255.255.255.0 192.168.20.1` |
-| PC_04 | 30 | Servidores | `ip 192.168.30.10 255.255.255.0 192.168.30.1` |
+## 🖥️ Tabla de Configuración de Dispositivos por VLAN
 
 
-## **🔹 PASO 2: Configuración de Dispositivos**
+|Dispositivo|VLAN|Nombre VLAN   |Configuración IP (Formato CLI)             |
+|-----------|----|--------------|-------------------------------------------|
+|PC_01      |10  |Usuarios      |`ip 192.168.10.10 255.255.255.0 192.168.10.1`|
+|PC_02      |10  |Usuarios      |`ip 192.168.10.11 255.255.255.0 192.168.10.1`|
+|PC_03      |20  |Administración|`ip 192.168.20.10 255.255.255.0 192.168.20.1`|
+|PC_04      |30  |Servidores    |`ip 192.168.30.10 255.255.255.0 192.168.30.1`|
 
-### **1. Edge_01 (Router hacia Internet)**
+## 🔹 PASO 2: Configuración de Dispositivos
+
+### 1\. Edge_01 (Router hacia Internet)
 
     Router> enable
     Router#
@@ -44,7 +44,7 @@
     Edge_01#
     Edge_01# write memory
 
-### **2. R_Dist_01 (Router L3 - Router-on-a-Stick)**
+### 2. R_Dist_01 (Router L3 - Router-on-a-Stick)
 
     Router> enable
     Router# configure terminal
@@ -87,9 +87,9 @@
     [OK]
     R_Dist_01#
 
+## 🔹 PASO 3: Configuración de Switches
 
-## **🔹 PASO 3: Configuración de Switches**
-### **1. Sw_01 (Switch Principal - Root Bridge)**
+### 1. Sw_01 (Switch Principal - Root Bridge)
 
     Switch> enable
     Switch# configure terminal
@@ -131,9 +131,7 @@
     [OK]
     Sw_01#
 
-
-
-### **2. Sw_02 (Switch de Acceso - VLAN 10)**
+### 2. Sw_02 (Switch de Acceso - VLAN 10)
 
     Switch> enable
     Switch# configure terminal
@@ -165,8 +163,7 @@
     [OK]
     Sw_02#
 
-
-### **3. Sw_03 (Switch de Acceso - VLANs 20 y 30)**
+### 3. Sw_03 (Switch de Acceso - VLANs 20 y 30)
 
     Switch> enable
     Switch# configure terminal
@@ -207,19 +204,19 @@
     [OK]
     Sw_03#
 
-## **🔹 PASO 4: Configuración de PCs (Ejemplo para PC_01)**
-PC_01  `ip 192.168.10.10 255.255.255.0 192.168.10.1` 
-PC_02 `ip 192.168.10.11 255.255.255.0 192.168.10.1` 
-PC_03 `ip 192.168.20.10 255.255.255.0 192.168.20.1` 
-PC_04 `ip 192.168.30.10 255.255.255.0 192.168.30.1` 
+## 🔹 PASO 4: Configuración de PCs (Ejemplo para PC_01)
 
-## **🔹 PASO 5: Verificación y Troubleshooting**
-### **Comandos Clave**
+PC_01  ip 192.168.10.10 255.255.255.0 192.168.10.1 PC_02 ip 192.168.10.11
+255.255.255.0 192.168.10.1 PC_03 ip 192.168.20.10 255.255.255.0 192.168.20.1
+PC_04 ip 192.168.30.10 255.255.255.0 192.168.30.1
 
-1.  **Ver VLANs en switches**:  `show vlan brief`
-2. **Ver troncales**: `show interfaces trunk`
-4. **Ver rutas en R_Dist_01**: `show ip route`
-5. **Probar conectividad desde PCs**: `ping 192.168.20.1  # Desde PC_01 (VLAN 10) al gateway de VLAN 20`
+## 🔹 PASO 5: Verificación y Troubleshooting
 
- 
+### Comandos Clave
+
+1.  **Ver VLANs en switches**:  show vlan brief
+2.  **Ver troncales**: show interfaces trunk
+3.  **Ver rutas en R_Dist_01**: show ip route
+4.  **Probar conectividad desde PCs**: ping 192.168.20.1  # Desde PC_01 (VLAN
+    10\) al gateway de VLAN 20
 
