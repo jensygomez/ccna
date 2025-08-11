@@ -21,10 +21,14 @@
     Edge_01(config)#
     
     ! Configurar interfaz hacia Internet
-    Edge_01(config)# interface Gi0/0
-    Edge_01(config-if)# ip address 203.0.113.1 255.255.255.252
-    Edge_01(config-if)# no shutdown
-    Edge_01(config-if)# exit
+    Router(config)# interface GigabitEthernet0/0
+    Router(config-if)# ip address dhcp
+    Router(config-if)# no shutdown
+    Router(config-if)# exit
+    Router(config)# end
+    Router# write memory
+    Router# show ip interface brief
+    Router# show ip route
     
     ! Configurar interfaz hacia R_Dist_01
     Edge_01(config)# interface Gi0/2
@@ -33,7 +37,7 @@
     Edge_01(config-if)# exit
     
     ! Ruta estática hacia Internet
-    Edge_01(config)# ip route 0.0.0.0 0.0.0.0 203.0.113.2
+    Edge_01(config)# ip route 0.0.0.0 0.0.0.0 192.168.6.1
     
     ! Rutas hacia redes internas
     Edge_01(config)# ip route 192.168.10.0 255.255.255.0 192.168.100.2
@@ -43,6 +47,9 @@
     Edge_01(config)# end
     Edge_01#
     Edge_01# write memory
+
+    Router# show ip interface brief
+    Router# show ip route
 
 ### 2. R_Dist_01 (Router L3 - Router-on-a-Stick)
 
@@ -86,6 +93,9 @@
     Building configuration...
     [OK]
     R_Dist_01#
+
+    Router# show ip interface brief
+    Router# show ip route
 
 ## 🔹 PASO 3: Configuración de Switches
 
