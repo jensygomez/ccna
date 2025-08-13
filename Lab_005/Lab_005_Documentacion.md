@@ -50,7 +50,7 @@
     Edge_01(config)# ip route 0.0.0.0 0.0.0.0 dhcp
     
     ! Habilitar forwarding IP
-    Edge_01(config)# ip forwarding
+    Edge_01(config)# ip routing
     
     Edge_01(config)# end
     Edge_01# write memory
