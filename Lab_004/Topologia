@@ -1,0 +1,17 @@
+NET conectado a Edge_01 Gi0/0
+
+
+Edge_01 Gi0/0 conectado a NET
+Edge_01 Gi0/1 conectado a R_Dist_01 Gi0/1
+
+R_Dist_01 Gi0/0 conectado a Sw_02 Gi0/0
+R_Dist_01 Gi0/1 conectado a Edge_01 Gi0/1
+
+
+Sw_02 Gi0/0 conectado a R_Dist_01 Gi0/0
+Sw_02 Gi1/0 conectado a PC_01 eth0
+Sw_02 Gi1/1 conectado a PC_02 eth0
+Sw_02 Gi1/2 conectado a PC_03 eth0
+Sw_02 Gi1/3 conectado a PC_04 eth0
+
+
