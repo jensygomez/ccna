@@ -1,0 +1,150 @@
+# Lab 1: VLANs & Router-on-a-Stick (Topología Actualizada)
+
+## 📋 Objetivo
+
+Configurar y verificar VLANs en múltiples switches y establecer conectividad
+inter-VLAN utilizando Router-on-a-Stick.
+
+## 🔧 Topología Física
+
+- **Router:** R_iosv-1 (Interface: Gi0/0)
+- **Switches L2:** Switch_01, Switch_02
+- **PCs:** PC1, PC2
+
+## 🔌 Conexiones
+
+
+|Dispositivo A|Interfaz A|Dispositivo B|Interfaz B|
+|-------------|----------|-------------|----------|
+|R_iosv-1     |Gi0/0     |Switch_02    |Gi0/0/1   |
+|Switch_02    |Gi0/0/0   |Switch_01    |Gi0/0/0   |
+|Switch_01    |Gi1/1/0   |PC1          |e0        |
+|Switch_01    |Gi2/2/0   |PC2          |e0        |
+
+## 📡 Direccionamiento IP
+
+
+|Dispositivo|Interfaz|Dirección IP |Máscara      |VLAN|
+|-----------|--------|-------------|-------------|----|
+|PC1        |e0      |192.168.10.10|255.255.255.0|10  |
+|PC2        |e0      |192.168.20.10|255.255.255.0|20  |
+|R_iosv-1   |G0/0.10 |192.168.10.1 |255.255.255.0|10  |
+|R_iosv-1   |G0/0.20 |192.168.20.1 |255.255.255.0|20  |
+
+## 🚀 Configuración
+
+### 1\. Configurar VLANs en los Switches
+
+**En Switch_01:**
+
+Switch_01> enable
+Switch_01# configure terminal
+Switch_01(config)# vlan 10
+Switch_01(config-vlan)# name SALES
+Switch_01(config-vlan)# vlan 20
+Switch_01(config-vlan)# name HR
+Switch_01(config-vlan)# vlan 99
+Switch_01(config-vlan)# name NATIVE
+Switch_01(config-vlan)# exit
+Switch_01(config)# interface Gi1/1/0
+Switch_01(config-if)# switchport mode access
+Switch_01(config-if)# switchport access vlan 10
+Switch_01(config-if)# no shutdown
+Switch_01(config-if)# interface Gi2/2/0
+Switch_01(config-if)# switchport mode access
+Switch_01(config-if)# switchport access vlan 20
+Switch_01(config-if)# no shutdown
+Switch_01(config-if)# end
+Switch_01# copy running-config startup-config
+
+**En Switch_02:**
+
+    enable
+    configure terminal
+    vlan 10
+     name SALES
+    vlan 20
+     name HR
+    vlan 99
+     name NATIVE
+    exit
+
+### 2. Configurar Enlace Troncal (Trunk) entre Switches
+
+**En Switch_01:**
+
+    interface Gi0/0/0
+     switchport mode trunk
+     switchport trunk native vlan 99
+     switchport trunk allowed vlan 10,20,99
+     no shutdown
+
+**En Switch_02:**
+
+    interface Gi0/0/0
+     switchport mode trunk
+     switchport trunk native vlan 99
+     switchport trunk allowed vlan 10,20,99
+     no shutdown
+
+### 3. Configurar Router-on-a-Stick en R_iosv-1
+
+**En R_iosv-1:**
+
+    enable
+    configure terminal
+    interface Gi0/0
+     no shutdown
+     exit
+    interface Gi0/0.10
+     encapsulation dot1Q 10
+     ip address 192.168.10.1 255.255.255.0
+     exit
+    interface Gi0/0.20
+     encapsulation dot1Q 20
+     ip address 192.168.20.1 255.255.255.0
+     exit
+    end
+
+### 4. Configurar Puerto del Router en Switch_02 como Trunk
+
+**En Switch_02:**
+
+    interface Gi0/0/1
+     switchport mode trunk
+     switchport trunk native vlan 99
+     switchport trunk allowed vlan 10,20,99
+     no shutdown
+
+### 5. Configurar las PCs
+
+**En PC1:**
+
+    ip 192.168.10.10 255.255.255.0 192.168.10.1
+
+**En PC2:**
+
+    ip 192.168.20.10 255.255.255.0 192.168.20.1
+
+## ✅ Verificación
+
+### Comandos de Verificación Útiles:
+
+- **Ver VLANs:**  show vlan brief
+- **Ver troncales:**  show interfaces trunk
+- **Ver interfaces del router:**  show ip interface brief
+- **Ver tablas ARP:**  show arp
+
+### Pruebas de Conectividad:
+
+- Desde  **PC1**:  ping 192.168.20.10
+- Desde  **PC2**:  ping 192.168.10.10
+- Desde  **R_iosv-1**:  ping 192.168.10.10  y  ping 192.168.20.10
+
+## 🐛 Troubleshooting Tips
+
+- Asegúrate de que las VLANs estén creadas en  **ambos switches**.
+- Verifica que los puertos trunk permitan el paso de las VLANs  **10, 20 y 99**.
+- Confirma que las subinterfaces del router estén  **UP/UP**.
+- Revisa que los gateways predeterminados en las PCs estén correctos.
+
