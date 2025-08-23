@@ -108,15 +108,144 @@ Switch_01# copy running-config startup-config
 
 ### 4. Configurar Puerto del Router en Switch_02 como Trunk
 
+**En Switch_01:**
+
+    Switch>
+    Switch>en
+    Switch#configure terminal
+    Switch(config)#hostname Switch_01
+    Switch_01(config)#
+
+    Switch_01(config)#vlan 10
+    Switch_01(config-vlan)#name SALES
+    Switch_01(config-vlan)#exit
+
+    Switch_01(config)# vlan 20
+    Switch_01(config-vlan)#name HR
+    Switch_01(config-vlan)#exit
+
+    Switch_01(config)#vlan 99
+    Switch_01(config-vlan)#name NATIVE
+    Switch_01(config-vlan)#exit
+
+    Switch_01(config)# interface Gi1/0
+    Switch_01(config-if)# switchport mode access
+    Switch_01(config-if)# switchport access vlan 10
+    Switch_01(config-if)# no shutdown
+
+    Switch_01(config-if)# interface Gi2/0
+    Switch_01(config-if)# switchport mode access
+    Switch_01(config-if)# switchport access vlan 20
+    Switch_01(config-if)# no shutdown
+    Switch_01(config-if)# end
+
+    Switch_01# copy running-config startup-config
+
+    Switch_01# show vlan brief
+    Switch_01# show interfaces status
+
+    Switch_01# show interfaces Gi1/0 switchport
+    Switch_01# show interfaces Gi2/0 switchport
+    Switch_01# show ip interface brief
+
+    Switch_01#configure terminal
+    Switch_01(config)#interface G0/0
+    Switch_01(config-if)#switchport trunk encapsulation dot1q
+    Switch_01(config-if)#switchport mode trunk
+    Switch_01(config-if)# switchport trunk native vlan 99
+    Switch_01(config-if)# switchport trunk allowed vlan 10,20,99
+    Switch_01(config-if)# no shutdown
+    Switch_01(config-if)# end
+    Switch_01#write memory
+
+
+
+    Switch_01# show interfaces G0/0 trunk
+    Switch_01# show interfaces G0/0 switchport
+
 **En Switch_02:**
 
-    interface Gi0/0/1
-     switchport mode trunk
-     switchport trunk native vlan 99
-     switchport trunk allowed vlan 10,20,99
-     no shutdown
+    Switch>
+    Switch>en
+    Switch#configure terminal
+    Switch(config)#hostname Switch_02
 
-### 5. Configurar las PCs
+    Switch_02(config)#vlan 10
+    Switch_02(config-vlan)#name SALES
+    Switch_02(config-vlan)#exit
+
+    Switch_02(config)#vlan 20
+    Switch_02(config-vlan)#name HR
+    Switch_02(config-vlan)#exit
+
+    Switch_02(config)#vlan 99
+    Switch_02(config-vlan)#name NATIVE
+    Switch_02(config-vlan)#exit
+
+    Switch_02(config)#end
+    Switch_02#copy running-config startup-config
+    Destination filename [startup-config]? 
+    Building configuration...
+    Switch_02#
+
+    Switch_02#configure terminal
+    Switch_02(config)#interface g0/1
+    Switch_02(config-if)#shutdown
+    Switch_02(config-if)#switchport mode trunk
+    Switch_02(config-if)#switchport trunk encapsulation dot1q
+    Switch_02(config-if)#switchport trunk native vlan 99
+    Switch_02(config-if)#switchport trunk allowed vlan 10,20,99
+    Switch_02(config-if)#duplex full
+    Switch_02(config-if)#speed 100
+    Switch_02(config-if)#no shutdown
+    Switch_02(config-if)#end
+    Switch_02#write memory
+
+    Switch_02#configure terminal
+    Switch_02(config)#interface g0/0
+    Switch_02(config-if)#shutdown
+    Switch_02(config-if)#switchport mode trunk
+    Switch_02(config-if)#switchport trunk encapsulation dot1q
+    Switch_02(config-if)#switchport trunk native vlan 99
+    Switch_02(config-if)#switchport trunk allowed vlan 10,20,99
+    Switch_02(config-if)#duplex full
+    Switch_02(config-if)#speed 100
+    Switch_02(config-if)#no shutdown
+    Switch_02(config-if)#end
+
+
+
+
+
+### 2. Configurar Router-on-a-Stick en R_iosv-1
+
+**En R_iosv-1:**
+
+    R_iosv-1#configure terminal
+    R_iosv-1(config)#interface f0/0
+    R_iosv-1(config-if)#duplex full
+    R_iosv-1(config-if)#speed 100
+    R_iosv-1(config-if)#no shutdown
+    R_iosv-1(config-if)#end
+
+# Configure correct subinterfaces
+    R_iosv-1(config)#interface f0/0.10
+    R_iosv-1(config-subif)#encapsulation dot1Q 10
+    R_iosv-1(config-subif)#ip address 192.168.10.1 255.255.255.0
+    R_iosv-1(config-subif)#exit
+
+    R_iosv-1(config)#interface f0/0.20
+    R_iosv-1(config-subif)#encapsulation dot1Q 20
+    R_iosv-1(config-subif)#ip address 192.168.20.1 255.255.255.0
+    R_iosv-1(config-subif)#exit
+    R_iosv-1(config-if)#end
+    R_iosv-1#copy run start
+
+
+
+
+
+### 3. Configurar las PCs
 
 **En PC1:**
 
