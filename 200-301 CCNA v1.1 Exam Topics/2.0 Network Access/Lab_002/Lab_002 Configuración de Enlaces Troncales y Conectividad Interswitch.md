@@ -86,7 +86,7 @@ Configurar y verificar enlaces troncales entre múltiples switches, implementar 
 ### 2. Configurar puertos de acceso
 
 **En Switch_01:**
-    Switch_01(config)#interface Gi1/0
+    Switch_01(config)#interface range Gi1/0 - 3
     Switch_01(config-if)#switchport mode access
     Switch_01(config-if)#switchport access vlan 10
     Switch_01(config-if)#no shutdown
@@ -117,7 +117,6 @@ Configurar y verificar enlaces troncales entre múltiples switches, implementar 
 **En Switch_01:**
 
     Switch_01(config)#interface Gi0/1
-    Switch_01(config-if)#switchport trunk encapsulation dot1q
     Switch_01(config-if)#switchport mode trunk
     Switch_01(config-if)#switchport trunk native vlan 99
     Switch_01(config-if)#switchport trunk allowed vlan 10,20,99
@@ -127,7 +126,6 @@ Configurar y verificar enlaces troncales entre múltiples switches, implementar 
 
 **En Switch_02:**
     Switch_02(config)#interface range Gi0/1-2
-    Switch_02(config-if-range)#switchport trunk encapsulation dot1q
     Switch_02(config-if-range)#switchport mode trunk
     Switch_02(config-if-range)#switchport trunk native vlan 99
     Switch_02(config-if-range)#switchport trunk allowed vlan 10,20,99
@@ -137,7 +135,6 @@ Configurar y verificar enlaces troncales entre múltiples switches, implementar 
 
 **En Switch_03:**
     Switch_03(config)#interface Gi0/1
-    Switch_03(config-if)#switchport trunk encapsulation dot1q
     Switch_03(config-if)#switchport mode trunk
     Switch_03(config-if)#switchport trunk native vlan 99
     Switch_03(config-if)#switchport trunk allowed vlan 10,20,99
@@ -161,7 +158,6 @@ Configurar y verificar enlaces troncales entre múltiples switches, implementar 
     ip 192.168.20.10 255.255.255.0 192.168.20.1
 
 **En PC3:**
-
     ip 192.168.10.20 255.255.255.0 192.168.10.1
 
 **En PC4:**
