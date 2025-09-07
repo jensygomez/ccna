@@ -57,21 +57,23 @@ echo -e "${YELLOW}📦 Actualizando pip dentro del entorno virtual...${NC}"
 echo -e "${YELLOW}📦 Instalando librerías Python de automatización...${NC}"
 "$VENV_PATH/bin/pip" install --upgrade netmiko paramiko napalm nornir scrapli textfsm jinja2 pyyaml requests rich
 
-# Verificar librerías instaladas y mostrar versiones
+# Verificar librerías instaladas
 echo -e "${YELLOW}🔍 Verificando librerías instaladas...${NC}"
-"$VENV_PATH/bin/python" - <<EOF
-import netmiko, paramiko, napalm, nornir, scrapli, textfsm, jinja2, yaml, requests, rich
-print("✅ Netmiko:", netmiko.__version__)
-print("✅ Paramiko:", paramiko.__version__)
-print("✅ NAPALM:", napalm.__version__)
-print("✅ Nornir:", nornir.__version__)
-print("✅ Scrapli:", scrapli.__version__)
-print("✅ TextFSM:", textfsm.__version__)
-print("✅ Jinja2:", jinja2.__version__)
-print("✅ PyYAML:", yaml.__version__)
-print("✅ Requests:", requests.__version__)
-print("✅ Rich:", rich.__version__)
-print("🎉 Todas las librerías están instaladas correctamente!")
+python3 - <<EOF
+import importlib
+libs = ["netmiko", "paramiko", "napalm", "nornir", "scrapli", "textfsm", "jinja2", "pyyaml", "requests", "rich"]
+for lib in libs:
+    try:
+        module = importlib.import_module(lib)
+        try:
+            version = module.__version__
+        except AttributeError:
+            # Algunos módulos como 'rich' no tienen __version__
+            import importlib.metadata
+            version = importlib.metadata.version(lib)
+        print(f"✅ {lib}: {version}")
+    except ImportError:
+        print(f"❌ {lib} NO instalado")
 EOF
 
 # Configurar Git
