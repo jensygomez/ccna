@@ -3,15 +3,6 @@
 
 set -e  # Detener en caso de error
 
-# Solucionar error de repositorio de HashiCorp
-if [ -f "/etc/apt/sources.list.d/hashicorp.list" ]; then
-    echo -e "${YELLOW}⚠️  Repositorio HashiCorp detectado, solucionando...${NC}"
-    # Intentar agregar la clave GPG
-    wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg 2>/dev/null || \
-    echo -e "${YELLOW}⚠️  No se pudo agregar clave GPG, continuando...${NC}"
-fi
-
-
 echo "🔄 Iniciando setup de Bastion_01..."
 echo "==========================================="
 
@@ -41,14 +32,20 @@ install_pip() {
     fi
 }
 
+# Solucionar error de repositorio de HashiCorp PRIMERO
+if [ -f "/etc/apt/sources.list.d/hashicorp.list" ]; then
+    echo -e "${YELLOW}⚠️  Repositorio HashiCorp detectado, solucionando...${NC}"
+    # Intentar agregar la clave GPG
+    wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg 2>/dev/null || \
+    echo -e "${YELLOW}⚠️  No se pudo agregar clave GPG, eliminando repositorio...${NC}"
+    rm -f /etc/apt/sources.list.d/hashicorp.list
+fi
+
 # Actualizar sistema
 echo -e "${YELLOW}🔄 Actualizando lista de paquetes...${NC}"
 apt update || echo -e "${YELLOW}⚠️  Apt update tuvo errores, continuando...${NC}"
-# Forzar instalación de git desde repositorios oficiales
-apt install -y git --allow-unauthenticated
 
-
-# Instalar herramientas del sistema
+# Instalar herramientas del sistema (SOLO UNA VEZ git)
 echo -e "${YELLOW}📦 Instalando herramientas del sistema...${NC}"
 install_package git
 install_package python3
@@ -72,10 +69,19 @@ install_pip jinja2
 install_pip pyyaml
 install_pip requests
 
-# Configurar Git (opcional)
+# Configurar Git (SOLO si git está instalado)
 echo -e "${YELLOW}⚙️ Configurando Git...${NC}"
-git config --global user.name "Bastion_01"
-git config --global user.email "bastion@network.automation"
+if command -v git &> /dev/null; then
+    git config --global user.name "Bastion_01"
+    git config --global user.email "bastion@network.automation"
+    echo -e "${GREEN}✅ Git configurado correctamente${NC}"
+else
+    echo -e "${RED}❌ Git no está instalado, no se puede configurar${NC}"
+    # Intentar instalar git nuevamente
+    apt install -y git
+    git config --global user.name "Bastion_01"
+    git config --global user.email "bastion@network.automation"
+fi
 
 # Verificar instalaciones
 echo -e "${YELLOW}🔍 Verificando instalaciones...${NC}"
@@ -86,11 +92,14 @@ echo -e "Git: $(git --version)"
 # Verificar librerías Python
 echo -e "${YELLOW}🔍 Verificando librerías Python...${NC}"
 python3 -c "
-import netmiko, paramiko, napalm, nornir
-print('✅ Netmiko:', netmiko.__version__)
-print('✅ Paramiko:', paramiko.__version__)
-print('✅ NAPALM:', napalm.__version__)
-print('✅ Todas las librerías instaladas correctamente!')
+try:
+    import netmiko, paramiko, napalm, nornir
+    print('✅ Netmiko:', netmiko.__version__)
+    print('✅ Paramiko:', paramiko.__version__)
+    print('✅ NAPALM:', napalm.__version__)
+    print('✅ Todas las librerías instaladas correctamente!')
+except ImportError as e:
+    print('❌ Error importando librerías:', e)
 "
 
 # Clonar repositorio si no existe
@@ -98,6 +107,7 @@ if [ ! -d "/opt/ccna" ]; then
     echo -e "${YELLOW}📥 Clonando repositorio...${NC}"
     cd /opt
     git clone https://github.com/jensygomez/ccna.git
+    echo -e "${GREEN}✅ Repositorio clonado en /opt/ccna${NC}"
 else
     echo -e "${GREEN}✅ Repositorio ya existe en /opt/ccna${NC}"
 fi
@@ -106,13 +116,18 @@ fi
 if [ ! -L "/opt/automation" ]; then
     echo -e "${YELLOW}🔗 Creando enlace simbólico...${NC}"
     ln -s /opt/ccna/Automation /opt/automation
+    echo -e "${GREEN}✅ Enlace simbólico creado: /opt/automation${NC}"
 else
     echo -e "${GREEN}✅ Enlace simbólico ya existe${NC}"
 fi
 
 # Verificar estructura final
 echo -e "${YELLOW}📁 Verificando estructura...${NC}"
-ls -la /opt/automation/ 2>/dev/null || echo "⚠️  Carpeta Automation no encontrada"
+if [ -d "/opt/automation" ]; then
+    ls -la /opt/automation/
+else
+    echo -e "${RED}❌ Carpeta Automation no encontrada${NC}"
+fi
 
 # Configurar aliases útiles
 echo -e "${YELLOW}⚙️ Configurando aliases...${NC}"
@@ -123,6 +138,7 @@ alias automation='cd /opt/automation'
 alias ccna-repo='cd /opt/ccna'
 alias update-scripts='cd /opt/ccna && git pull origin main'
 alias py='python3'
+alias check-bastion='/opt/check_install.sh'
 EOF
 
 echo -e "${GREEN}===========================================${NC}"
@@ -134,6 +150,7 @@ echo -e "  automation      → Ir a carpeta Automation"
 echo -e "  ccna-repo       → Ir al repositorio completo"
 echo -e "  update-scripts  → Actualizar scripts desde GitHub"
 echo -e "  py              → Ejecutar python3"
+echo -e "  check-bastion   → Verificar instalación"
 echo -e ""
 echo -e "${YELLOW}🚀 Para aplicar los aliases:${NC}"
 echo -e "  source ~/.bashrc"
