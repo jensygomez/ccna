@@ -43,7 +43,7 @@ install_pip() {
 
 # Actualizar sistema
 echo -e "${YELLOW}🔄 Actualizando lista de paquetes...${NC}"
-apt update
+apt update || echo -e "${YELLOW}⚠️  Apt update tuvo errores, continuando...${NC}"
 
 # Instalar herramientas del sistema
 echo -e "${YELLOW}📦 Instalando herramientas del sistema...${NC}"
