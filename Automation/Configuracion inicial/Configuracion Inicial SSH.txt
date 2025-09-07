@@ -1,4 +1,6 @@
 configure terminal
+
+! Contraseña enable
 enable secret cisco
 
 ! Configuración de la consola
@@ -14,6 +16,15 @@ line vty 0 4
  login
  logging synchronous
  exit
+
+! Configurar la interfaz VLAN1 con IP y activarla
+interface vlan 1
+ ip address 192.168.1.2 255.255.255.0
+ no shutdown
+ exit
+
+! Configurar la puerta de enlace (default gateway) para acceder desde otra red
+ip default-gateway 192.168.1.1
 
 end
 write memory
