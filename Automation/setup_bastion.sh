@@ -1,5 +1,5 @@
 #!/bin/bash
-# setup_bastion.sh - Configuración inteligente para Bastion_01
+# setup_bastion.sh - Configuración inteligente para Bastion_01 (con entorno virtual)
 
 set -e  # Detener en caso de error
 
@@ -14,42 +14,25 @@ NC='\033[0m' # No Color
 
 # Función para detectar si necesita sudo
 needs_sudo() {
-    # Si no es root, necesita sudo
     [ "$(id -u)" -ne 0 ]
 }
 
 # Función de ejecución inteligente
 run_cmd() {
     if needs_sudo; then
-        echo -e "${YELLOW}🔐 Ejecutando con sudo: $*${NC}"
         sudo "$@"
     else
-        echo -e "${GREEN}🔄 Ejecutando: $*${NC}"
         "$@"
     fi
 }
 
-# Función para verificar e instalar paquetes
+# Función para verificar e instalar paquetes del sistema
 install_package() {
-    if dpkg -l | grep -q "$1"; then
+    if dpkg -l | grep -qw "$1"; then
         echo -e "${GREEN}✅ $1 ya está instalado${NC}"
     else
         echo -e "${YELLOW}📦 Instalando $1...${NC}"
         run_cmd apt install -y "$1"
-    fi
-}
-
-# Función para verificar e instalar pip packages
-install_pip() {
-    if pip3 list | grep -q "$1"; then
-        echo -e "${GREEN}✅ $1 ya está instalado${NC}"
-    else
-        echo -e "${YELLOW}📦 Instalando $1...${NC}"
-        if needs_sudo; then
-            pip3 install --user "$1"
-        else
-            pip3 install "$1"
-        fi
     fi
 }
 
@@ -60,17 +43,9 @@ else
     echo -e "${GREEN}🛡️  Modo root: Ejecutando directamente${NC}"
 fi
 
-# Solucionar error de repositorio de HashiCorp
-if [ -f "/etc/apt/sources.list.d/hashicorp.list" ]; then
-    echo -e "${YELLOW}⚠️  Repositorio HashiCorp detectado, solucionando...${NC}"
-    run_cmd wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg 2>/dev/null || \
-    echo -e "${YELLOW}⚠️  No se pudo agregar clave GPG, eliminando repositorio...${NC}"
-    run_cmd rm -f /etc/apt/sources.list.d/hashicorp.list
-fi
-
 # Actualizar sistema
 echo -e "${YELLOW}🔄 Actualizando lista de paquetes...${NC}"
-run_cmd apt update || echo -e "${YELLOW}⚠️  Apt update tuvo errores, continuando...${NC}"
+run_cmd apt update || echo -e "${YELLOW}⚠️ Apt update tuvo errores, continuando...${NC}"
 
 # Instalar herramientas del sistema
 echo -e "${YELLOW}📦 Instalando herramientas del sistema...${NC}"
@@ -84,17 +59,41 @@ install_package curl
 install_package wget
 install_package openssh-client
 
-# Instalar librerías Python de network automation
-echo -e "${YELLOW}📦 Instalando librerías Python...${NC}"
-install_pip netmiko
-install_pip paramiko
-install_pip napalm
-install_pip nornir
-install_pip scrapli
-install_pip textfsm
-install_pip jinja2
-install_pip pyyaml
-install_pip requests
+# Configurar entorno virtual
+echo -e "${YELLOW}⚙️ Configurando entorno virtual Python...${NC}"
+VENV_PATH="/opt/ccna/venv"
+if [ ! -d "$VENV_PATH" ]; then
+    run_cmd mkdir -p /opt/ccna
+    python3 -m venv "$VENV_PATH"
+    echo -e "${GREEN}✅ Entorno virtual creado en $VENV_PATH${NC}"
+else
+    echo -e "${GREEN}✅ Entorno virtual ya existe${NC}"
+fi
+
+# Activar entorno virtual
+source "$VENV_PATH/bin/activate"
+
+# Actualizar pip dentro del venv
+echo -e "${YELLOW}📦 Actualizando pip dentro del entorno virtual...${NC}"
+pip install --upgrade pip
+
+# Instalar librerías de automatización dentro del venv
+echo -e "${YELLOW}📦 Instalando librerías Python de automatización...${NC}"
+pip install netmiko paramiko napalm nornir scrapli textfsm jinja2 pyyaml requests rich
+
+# Verificar librerías instaladas
+echo -e "${YELLOW}🔍 Verificando librerías instaladas...${NC}"
+python3 - <<EOF
+try:
+    import netmiko, paramiko, napalm, nornir, scrapli
+    print("✅ Netmiko:", netmiko.__version__)
+    print("✅ Paramiko:", paramiko.__version__)
+    print("✅ NAPALM:", napalm.__version__)
+    print("✅ Scrapli:", scrapli.__version__)
+    print("🎉 Todas las librerías están instaladas correctamente!")
+except ImportError as e:
+    print("❌ Error importando librerías:", e)
+EOF
 
 # Configurar Git
 echo -e "${YELLOW}⚙️ Configurando Git...${NC}"
@@ -109,34 +108,14 @@ else
     git config --global user.email "jensygomez@gmail.com"
 fi
 
-# Verificar instalaciones
-echo -e "${YELLOW}🔍 Verificando instalaciones...${NC}"
-echo -e "Python: $(python3 --version)"
-echo -e "Pip: $(pip3 --version)"
-echo -e "Git: $(git --version)"
-
-# Verificar librerías Python
-echo -e "${YELLOW}🔍 Verificando librerías Python...${NC}"
-python3 -c "
-try:
-    import netmiko, paramiko, napalm, nornir
-    print('✅ Netmiko:', netmiko.__version__)
-    print('✅ Paramiko:', paramiko.__version__)
-    print('✅ NAPALM:', napalm.__version__)
-    print('✅ Todas las librerías instaladas correctamente!')
-except ImportError as e:
-    print('❌ Error importando librerías:', e)
-"
-
 # Clonar repositorio si no existe
-if [ ! -d "/opt/ccna" ]; then
-    echo -e "${YELLOW}📥 Clonando repositorio...${NC}"
-    run_cmd mkdir -p /opt
-    cd /opt
-    git clone https://github.com/jensygomez/ccna.git
+if [ ! -d "/opt/ccna/.git" ]; then
+    echo -e "${YELLOW}📥 Clonando repositorio CCNA...${NC}"
+    run_cmd git clone https://github.com/jensygomez/ccna.git /opt/ccna
     echo -e "${GREEN}✅ Repositorio clonado en /opt/ccna${NC}"
 else
-    echo -e "${GREEN}✅ Repositorio ya existe en /opt/ccna${NC}"
+    echo -e "${GREEN}✅ Repositorio ya existe, actualizando...${NC}"
+    cd /opt/ccna && git pull origin main
 fi
 
 # Crear enlace simbólico si no existe
@@ -144,55 +123,27 @@ if [ ! -L "/opt/automation" ]; then
     echo -e "${YELLOW}🔗 Creando enlace simbólico...${NC}"
     run_cmd ln -sf /opt/ccna/Automation /opt/automation
     echo -e "${GREEN}✅ Enlace simbólico creado: /opt/automation${NC}"
-else
-    echo -e "${GREEN}✅ Enlace simbólico ya existe${NC}"
 fi
 
 # Configurar permisos adecuados
 if needs_sudo; then
     echo -e "${YELLOW}🔐 Ajustando permisos...${NC}"
-    run_cmd chown -R $(id -u):$(id -g) /opt/ccna /opt/automation 2>/dev/null || true
+    run_cmd chown -R $(id -u):$(id -g) /opt/ccna /opt/automation
 fi
 
-# Verificar estructura final
-echo -e "${YELLOW}📁 Verificando estructura...${NC}"
-if [ -d "/opt/automation" ]; then
-    ls -la /opt/automation/
-else
-    echo -e "${RED}❌ Carpeta Automation no encontrada${NC}"
-fi
-
-# Configurar aliases útiles en el usuario actual
+# Configurar alias para usar el entorno virtual automáticamente
 echo -e "${YELLOW}⚙️ Configurando aliases...${NC}"
-cat >> ~/.bashrc << EOF
-
-# Aliases para automation
-alias automation='cd /opt/automation 2>/dev/null || cd /opt/ccna/Automation'
-alias ccna-repo='cd /opt/ccna'
-alias update-scripts='cd /opt/ccna && git pull origin main'
-alias py='python3'
-alias check-bastion='/opt/check_install.sh'
-EOF
+grep -qxF 'alias activate-ccna="source /opt/ccna/venv/bin/activate"' ~/.bashrc || echo 'alias activate-ccna="source /opt/ccna/venv/bin/activate"' >> ~/.bashrc
+grep -qxF 'alias automation="cd /opt/automation || cd /opt/ccna/Automation"' ~/.bashrc || echo 'alias automation="cd /opt/automation || cd /opt/ccna/Automation"' >> ~/.bashrc
+grep -qxF 'alias ccna-repo="cd /opt/ccna"' ~/.bashrc || echo 'alias ccna-repo="cd /opt/ccna"' >> ~/.bashrc
 
 echo -e "${GREEN}===========================================${NC}"
-echo -e "${GREEN}🎉 Setup de Bastion_01 completado!${NC}"
+echo -e "${GREEN}🎉 Setup de Bastion_01 completado${NC}"
 echo -e "${GREEN}===========================================${NC}"
+echo -e "${YELLOW}💡 Para activar el entorno virtual usa:${NC}"
+echo -e "  source /opt/ccna/venv/bin/activate"
 echo -e ""
-echo -e "${YELLOW}📋 Comandos útiles:${NC}"
-echo -e "  automation      → Ir a carpeta Automation"
-echo -e "  ccna-repo       → Ir al repositorio completo"
-echo -e "  update-scripts  → Actualizar scripts desde GitHub"
-echo -e "  py              → Ejecutar python3"
-echo -e "  check-bastion   → Verificar instalación"
+echo -e "${YELLOW}💡 O simplemente:${NC}"
+echo -e "  activate-ccna"
 echo -e ""
-echo -e "${YELLOW}🚀 Para aplicar los aliases:${NC}"
-echo -e "  source ~/.bashrc"
-echo -e ""
-echo -e "${GREEN}✅ Bastion_01 está lista para automation!${NC}"
-
-# Mensaje final según el modo
-if needs_sudo; then
-    echo -e "${YELLOW}💡 Tip: Algunos comandos se ejecutaron con sudo${NC}"
-else
-    echo -e "${GREEN}💡 Todo ejecutado con permisos root${NC}"
-fi
+echo -e "${GREEN}✅ Bastion_01 está lista para automatización de redes!${NC}"
