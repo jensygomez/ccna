@@ -1,5 +1,5 @@
 #!/bin/bash
-# setup_bastion.sh - Configuración completa para Bastion_01
+# setup_bastion.sh - Configuración inteligente para Bastion_01
 
 set -e  # Detener en caso de error
 
@@ -12,13 +12,30 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Función para detectar si necesita sudo
+needs_sudo() {
+    # Si no es root, necesita sudo
+    [ "$(id -u)" -ne 0 ]
+}
+
+# Función de ejecución inteligente
+run_cmd() {
+    if needs_sudo; then
+        echo -e "${YELLOW}🔐 Ejecutando con sudo: $*${NC}"
+        sudo "$@"
+    else
+        echo -e "${GREEN}🔄 Ejecutando: $*${NC}"
+        "$@"
+    fi
+}
+
 # Función para verificar e instalar paquetes
 install_package() {
     if dpkg -l | grep -q "$1"; then
         echo -e "${GREEN}✅ $1 ya está instalado${NC}"
     else
         echo -e "${YELLOW}📦 Instalando $1...${NC}"
-        apt install -y "$1"
+        run_cmd apt install -y "$1"
     fi
 }
 
@@ -28,24 +45,34 @@ install_pip() {
         echo -e "${GREEN}✅ $1 ya está instalado${NC}"
     else
         echo -e "${YELLOW}📦 Instalando $1...${NC}"
-        pip3 install "$1"
+        if needs_sudo; then
+            pip3 install --user "$1"
+        else
+            pip3 install "$1"
+        fi
     fi
 }
 
-# Solucionar error de repositorio de HashiCorp PRIMERO
+# Detectar si estamos en modo root o usuario normal
+if needs_sudo; then
+    echo -e "${YELLOW}👤 Modo usuario: Se usará sudo cuando sea necesario${NC}"
+else
+    echo -e "${GREEN}🛡️  Modo root: Ejecutando directamente${NC}"
+fi
+
+# Solucionar error de repositorio de HashiCorp
 if [ -f "/etc/apt/sources.list.d/hashicorp.list" ]; then
     echo -e "${YELLOW}⚠️  Repositorio HashiCorp detectado, solucionando...${NC}"
-    # Intentar agregar la clave GPG
-    wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg 2>/dev/null || \
+    run_cmd wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg 2>/dev/null || \
     echo -e "${YELLOW}⚠️  No se pudo agregar clave GPG, eliminando repositorio...${NC}"
-    rm -f /etc/apt/sources.list.d/hashicorp.list
+    run_cmd rm -f /etc/apt/sources.list.d/hashicorp.list
 fi
 
 # Actualizar sistema
 echo -e "${YELLOW}🔄 Actualizando lista de paquetes...${NC}"
-apt update || echo -e "${YELLOW}⚠️  Apt update tuvo errores, continuando...${NC}"
+run_cmd apt update || echo -e "${YELLOW}⚠️  Apt update tuvo errores, continuando...${NC}"
 
-# Instalar herramientas del sistema (SOLO UNA VEZ git)
+# Instalar herramientas del sistema
 echo -e "${YELLOW}📦 Instalando herramientas del sistema...${NC}"
 install_package git
 install_package python3
@@ -69,15 +96,15 @@ install_pip jinja2
 install_pip pyyaml
 install_pip requests
 
-# Configurar Git (SOLO si git está instalado)
+# Configurar Git
 echo -e "${YELLOW}⚙️ Configurando Git...${NC}"
 if command -v git &> /dev/null; then
     git config --global user.name "Jensy Gomez"
     git config --global user.email "jensygomez@gmail.com"
     echo -e "${GREEN}✅ Git configurado correctamente${NC}"
 else
-    echo -e "${RED}❌ Git no está instalado, no se puede configurar${NC}"
-    apt install -y git
+    echo -e "${RED}❌ Git no está instalado, instalando...${NC}"
+    install_package git
     git config --global user.name "Jensy Gomez"
     git config --global user.email "jensygomez@gmail.com"
 fi
@@ -104,6 +131,7 @@ except ImportError as e:
 # Clonar repositorio si no existe
 if [ ! -d "/opt/ccna" ]; then
     echo -e "${YELLOW}📥 Clonando repositorio...${NC}"
+    run_cmd mkdir -p /opt
     cd /opt
     git clone https://github.com/jensygomez/ccna.git
     echo -e "${GREEN}✅ Repositorio clonado en /opt/ccna${NC}"
@@ -114,10 +142,16 @@ fi
 # Crear enlace simbólico si no existe
 if [ ! -L "/opt/automation" ]; then
     echo -e "${YELLOW}🔗 Creando enlace simbólico...${NC}"
-    ln -s /opt/ccna/Automation /opt/automation
+    run_cmd ln -sf /opt/ccna/Automation /opt/automation
     echo -e "${GREEN}✅ Enlace simbólico creado: /opt/automation${NC}"
 else
     echo -e "${GREEN}✅ Enlace simbólico ya existe${NC}"
+fi
+
+# Configurar permisos adecuados
+if needs_sudo; then
+    echo -e "${YELLOW}🔐 Ajustando permisos...${NC}"
+    run_cmd chown -R $(id -u):$(id -g) /opt/ccna /opt/automation 2>/dev/null || true
 fi
 
 # Verificar estructura final
@@ -128,12 +162,12 @@ else
     echo -e "${RED}❌ Carpeta Automation no encontrada${NC}"
 fi
 
-# Configurar aliases útiles
+# Configurar aliases útiles en el usuario actual
 echo -e "${YELLOW}⚙️ Configurando aliases...${NC}"
 cat >> ~/.bashrc << EOF
 
 # Aliases para automation
-alias automation='cd /opt/automation'
+alias automation='cd /opt/automation 2>/dev/null || cd /opt/ccna/Automation'
 alias ccna-repo='cd /opt/ccna'
 alias update-scripts='cd /opt/ccna && git pull origin main'
 alias py='python3'
@@ -155,3 +189,10 @@ echo -e "${YELLOW}🚀 Para aplicar los aliases:${NC}"
 echo -e "  source ~/.bashrc"
 echo -e ""
 echo -e "${GREEN}✅ Bastion_01 está lista para automation!${NC}"
+
+# Mensaje final según el modo
+if needs_sudo; then
+    echo -e "${YELLOW}💡 Tip: Algunos comandos se ejecutaron con sudo${NC}"
+else
+    echo -e "${GREEN}💡 Todo ejecutado con permisos root${NC}"
+fi
