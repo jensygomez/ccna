@@ -44,6 +44,9 @@ install_pip() {
 # Actualizar sistema
 echo -e "${YELLOW}🔄 Actualizando lista de paquetes...${NC}"
 apt update || echo -e "${YELLOW}⚠️  Apt update tuvo errores, continuando...${NC}"
+# Forzar instalación de git desde repositorios oficiales
+apt install -y git --allow-unauthenticated
+
 
 # Instalar herramientas del sistema
 echo -e "${YELLOW}📦 Instalando herramientas del sistema...${NC}"
