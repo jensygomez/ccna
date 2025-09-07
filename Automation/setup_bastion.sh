@@ -58,7 +58,7 @@ echo -e "${YELLOW}📦 Instalando librerías Python de automatización...${NC}"
 "$VENV_PATH/bin/pip" install --upgrade netmiko paramiko napalm nornir scrapli textfsm jinja2 pyyaml requests rich
 
 # Verificar librerías instaladas
-echo -e "${YELLOW}🔍 Verificando librerías instaladas...${NC}"
+source /ccna/venv/bin/activate
 python3 - <<EOF
 import importlib
 libs = ["netmiko", "paramiko", "napalm", "nornir", "scrapli", "textfsm", "jinja2", "pyyaml", "requests", "rich"]
@@ -68,13 +68,13 @@ for lib in libs:
         try:
             version = module.__version__
         except AttributeError:
-            # Algunos módulos como 'rich' no tienen __version__
             import importlib.metadata
             version = importlib.metadata.version(lib)
         print(f"✅ {lib}: {version}")
     except ImportError:
         print(f"❌ {lib} NO instalado")
 EOF
+
 
 # Configurar Git
 echo -e "${YELLOW}⚙️ Configurando Git...${NC}"
