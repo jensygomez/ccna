@@ -1,32 +1,32 @@
-import telnetlib
-import time
+from netmiko import ConnectHandler
 
-HOST = "192.168.1.2"
-PASSWORD = "cisco"
+# Datos del switch
+switch = {
+    "device_type": "cisco_ios_telnet",  # para Telnet
+    "host": "192.168.1.2",
+    "username": "",  # si tu switch no requiere username, dejar vacío
+    "password": "cisco",
+    "secret": "cisco",  # contraseña enable
+}
 
-tn = telnetlib.Telnet(HOST)
+# Conectarse al switch
+net_connect = ConnectHandler(**switch)
 
-# Login
-tn.read_until(b"Password:")
-tn.write(PASSWORD.encode('ascii') + b"\n")
+# Entrar al modo enable
+net_connect.enable()
 
-# Enable mode
-tn.write(b"enable\n")
-tn.read_until(b"Password:")
-tn.write(b"cisco\n")
+# Configuración de comandos
+commands = [
+    "configure terminal",
+    "hostname Sucursal_01",
+    "end",
+    "write memory",
+]
 
-# Configuración
-tn.write(b"configure terminal\n")
-tn.write(b"hostname Sucursal_01\n")
-tn.write(b"end\n")
-tn.write(b"write memory\n")
-tn.write(b"\n")
-
-# Dar tiempo a que el switch responda
-time.sleep(1)
-
-# Leer toda la salida
-output = tn.read_very_eager().decode('ascii')
+# Enviar comandos
+output = net_connect.send_config_set(commands)
 print(output)
 
-tn.close()
+# Cerrar conexión
+net_connect.disconnect()
+
