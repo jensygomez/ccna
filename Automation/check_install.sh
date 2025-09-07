@@ -1,7 +1,24 @@
 #!/bin/bash
 echo "🔍 Verificando instalaciones..."
+echo "==========================================="
 
-# Verificar herramientas
+# Ruta del entorno virtual
+VENV_PATH="/ccna/venv"
+PYTHON_BIN="$VENV_PATH/bin/python"
+PIP_BIN="$VENV_PATH/bin/pip"
+
+# Verificar si el entorno virtual existe
+if [ ! -d "$VENV_PATH" ]; then
+    echo "❌ No se encontró el entorno virtual en $VENV_PATH"
+    echo "⚠️  Ejecuta primero: sudo /ccna/setup_bastion.sh"
+    exit 1
+fi
+
+echo "✅ Usando entorno virtual: $VENV_PATH"
+echo "==========================================="
+
+# Verificar herramientas del sistema
+echo ""
 echo "📦 Herramientas del sistema:"
 tools=("git" "python3" "pip3" "curl" "wget")
 for tool in "${tools[@]}"; do
@@ -12,22 +29,37 @@ for tool in "${tools[@]}"; do
     fi
 done
 
-# Verificar librerías Python
+# Verificar versión de Python y pip del venv
 echo ""
-echo "🐍 Librerías Python:"
-libs=("netmiko" "paramiko" "napalm" "nornir" "scrapli" "textfsm")
+echo "🐍 Entorno virtual:"
+echo "Python: $($PYTHON_BIN --version)"
+echo "Pip: $($PIP_BIN --version)"
+
+# Verificar librerías Python instaladas en el venv
+echo ""
+echo "📚 Librerías Python en entorno virtual:"
+libs=("netmiko" "paramiko" "napalm" "nornir" "scrapli" "textfsm" "jinja2" "pyyaml" "requests" "rich")
 for lib in "${libs[@]}"; do
-    python3 -c "import $lib" 2>/dev/null && echo "✅ $lib" || echo "❌ $lib"
+    $PYTHON_BIN -c "import $lib" 2>/dev/null \
+        && echo "✅ $lib" \
+        || echo "❌ $lib"
 done
 
-# Verificar repositorio
+# Verificar repositorio CCNA
 echo ""
 echo "📁 Repositorio:"
-if [ -d "/opt/ccna" ]; then
-    echo "✅ Repositorio clonado"
-    ls -la /opt/ccna/Automation/ 2>/dev/null || echo "⚠️  Carpeta Automation no encontrada"
+if [ -d "/ccna" ]; then
+    echo "✅ Repositorio clonado en /ccna"
+    if [ -d "/ccna/Automation" ]; then
+        echo "✅ Carpeta Automation encontrada"
+        ls -la /ccna/Automation/
+    else
+        echo "⚠️  Carpeta Automation NO encontrada"
+    fi
 else
-    echo "❌ Repositorio NO clonado"
+    echo "❌ Repositorio CCNA NO clonado"
 fi
 
-echo "✅ Verificación completada"
+echo ""
+echo "🎉 Verificación completada con éxito"
+echo "==========================================="

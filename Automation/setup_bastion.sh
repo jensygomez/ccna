@@ -61,9 +61,9 @@ install_package openssh-client
 
 # Configurar entorno virtual
 echo -e "${YELLOW}⚙️ Configurando entorno virtual Python...${NC}"
-VENV_PATH="/opt/ccna/venv"
+VENV_PATH="/ccna/venv"
 if [ ! -d "$VENV_PATH" ]; then
-    run_cmd mkdir -p /opt/ccna
+    run_cmd mkdir -p /ccna
     python3 -m venv "$VENV_PATH"
     echo -e "${GREEN}✅ Entorno virtual creado en $VENV_PATH${NC}"
 else
@@ -109,39 +109,39 @@ else
 fi
 
 # Clonar repositorio si no existe
-if [ ! -d "/opt/ccna/.git" ]; then
+if [ ! -d "/ccna/.git" ]; then
     echo -e "${YELLOW}📥 Clonando repositorio CCNA...${NC}"
-    run_cmd git clone https://github.com/jensygomez/ccna.git /opt/ccna
-    echo -e "${GREEN}✅ Repositorio clonado en /opt/ccna${NC}"
+    run_cmd git clone https://github.com/jensygomez/ccna.git /ccna
+    echo -e "${GREEN}✅ Repositorio clonado en /ccna${NC}"
 else
     echo -e "${GREEN}✅ Repositorio ya existe, actualizando...${NC}"
-    cd /opt/ccna && git pull origin main
+    cd /ccna && git pull origin main
 fi
 
 # Crear enlace simbólico si no existe
-if [ ! -L "/opt/automation" ]; then
+if [ ! -L "/automation" ]; then
     echo -e "${YELLOW}🔗 Creando enlace simbólico...${NC}"
-    run_cmd ln -sf /opt/ccna/Automation /opt/automation
-    echo -e "${GREEN}✅ Enlace simbólico creado: /opt/automation${NC}"
+    run_cmd ln -sf /ccna/Automation /automation
+    echo -e "${GREEN}✅ Enlace simbólico creado: /automation${NC}"
 fi
 
 # Configurar permisos adecuados
 if needs_sudo; then
     echo -e "${YELLOW}🔐 Ajustando permisos...${NC}"
-    run_cmd chown -R $(id -u):$(id -g) /opt/ccna /opt/automation
+    run_cmd chown -R $(id -u):$(id -g) /ccna /automation
 fi
 
 # Configurar alias para usar el entorno virtual automáticamente
 echo -e "${YELLOW}⚙️ Configurando aliases...${NC}"
-grep -qxF 'alias activate-ccna="source /opt/ccna/venv/bin/activate"' ~/.bashrc || echo 'alias activate-ccna="source /opt/ccna/venv/bin/activate"' >> ~/.bashrc
-grep -qxF 'alias automation="cd /opt/automation || cd /opt/ccna/Automation"' ~/.bashrc || echo 'alias automation="cd /opt/automation || cd /opt/ccna/Automation"' >> ~/.bashrc
-grep -qxF 'alias ccna-repo="cd /opt/ccna"' ~/.bashrc || echo 'alias ccna-repo="cd /opt/ccna"' >> ~/.bashrc
+grep -qxF 'alias activate-ccna="source /ccna/venv/bin/activate"' ~/.bashrc || echo 'alias activate-ccna="source /ccna/venv/bin/activate"' >> ~/.bashrc
+grep -qxF 'alias automation="cd /automation || cd /ccna/Automation"' ~/.bashrc || echo 'alias automation="cd /automation || cd /ccna/Automation"' >> ~/.bashrc
+grep -qxF 'alias ccna-repo="cd /ccna"' ~/.bashrc || echo 'alias ccna-repo="cd /ccna"' >> ~/.bashrc
 
 echo -e "${GREEN}===========================================${NC}"
 echo -e "${GREEN}🎉 Setup de Bastion_01 completado${NC}"
 echo -e "${GREEN}===========================================${NC}"
 echo -e "${YELLOW}💡 Para activar el entorno virtual usa:${NC}"
-echo -e "  source /opt/ccna/venv/bin/activate"
+echo -e "  source /ccna/venv/bin/activate"
 echo -e ""
 echo -e "${YELLOW}💡 O simplemente:${NC}"
 echo -e "  activate-ccna"
