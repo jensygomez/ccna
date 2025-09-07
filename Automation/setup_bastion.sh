@@ -72,15 +72,14 @@ install_pip requests
 # Configurar Git (SOLO si git está instalado)
 echo -e "${YELLOW}⚙️ Configurando Git...${NC}"
 if command -v git &> /dev/null; then
-    git config --global user.name "Bastion_01"
-    git config --global user.email "bastion@network.automation"
+    git config --global user.name "Jensy Gomez"
+    git config --global user.email "jensygomez@gmail.com"
     echo -e "${GREEN}✅ Git configurado correctamente${NC}"
 else
     echo -e "${RED}❌ Git no está instalado, no se puede configurar${NC}"
-    # Intentar instalar git nuevamente
     apt install -y git
-    git config --global user.name "Bastion_01"
-    git config --global user.email "bastion@network.automation"
+    git config --global user.name "Jensy Gomez"
+    git config --global user.email "jensygomez@gmail.com"
 fi
 
 # Verificar instalaciones
