@@ -3,6 +3,15 @@
 
 set -e  # Detener en caso de error
 
+# Solucionar error de repositorio de HashiCorp
+if [ -f "/etc/apt/sources.list.d/hashicorp.list" ]; then
+    echo -e "${YELLOW}⚠️  Repositorio HashiCorp detectado, solucionando...${NC}"
+    # Intentar agregar la clave GPG
+    wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg 2>/dev/null || \
+    echo -e "${YELLOW}⚠️  No se pudo agregar clave GPG, continuando...${NC}"
+fi
+
+
 echo "🔄 Iniciando setup de Bastion_01..."
 echo "==========================================="
 
