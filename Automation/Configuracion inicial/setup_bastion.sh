@@ -1,6 +1,9 @@
 #!/bin/bash
 # setup_bastion_root.sh - Configuración completa para Bastion_01 como root
 
+
+source /ccna/venv/bin/activate   # activar el entorno virtual
+pip install pyyaml --upgrade
 set -e
 
 echo "🔄 Iniciando setup de Bastion_01 como root..."
