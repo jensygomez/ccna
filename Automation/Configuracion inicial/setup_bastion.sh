@@ -1,9 +1,6 @@
 #!/bin/bash
 # setup_bastion_root.sh - Configuración completa para Bastion_01 como root
 
-
-source /ccna/venv/bin/activate   # activar el entorno virtual
-pip install pyyaml --upgrade
 set -e
 
 echo "🔄 Iniciando setup de Bastion_01 como root..."
@@ -56,13 +53,69 @@ pip install --upgrade pip
 echo -e "${YELLOW}📦 Instalando librerías Python...${NC}"
 pip install --upgrade netmiko paramiko napalm nornir scrapli textfsm jinja2 pyyaml requests rich
 
-# Verificar librerías instaladas
+# Verificar librerías instaladas CORRECTAMENTE
 echo -e "${YELLOW}🔍 Verificando librerías...${NC}"
-for lib in netmiko paramiko napalm nornir scrapli textfsm jinja2 pyyaml requests; do
-    python3 -c "import $lib; print('✅ $lib:', getattr($lib, '__version__', 'OK'))" || echo "❌ $lib NO instalado"
-done
-# rich requiere manejo especial
-python3 -c "import rich; print('✅ rich: OK')" || echo "❌ rich NO instalado"
+python3 -c "
+try:
+    from netmiko import ConnectHandler
+    print('✅ netmiko: OK')
+except ImportError:
+    print('❌ netmiko: NO instalado')
+
+try:
+    import paramiko
+    print('✅ paramiko:', paramiko.__version__)
+except ImportError:
+    print('❌ paramiko: NO instalado')
+
+try:
+    import napalm
+    print('✅ napalm: OK')
+except ImportError:
+    print('❌ napalm: NO instalado')
+
+try:
+    import nornir
+    print('✅ nornir:', nornir.__version__)
+except ImportError:
+    print('❌ nornir: NO instalado')
+
+try:
+    import scrapli
+    print('✅ scrapli:', scrapli.__version__)
+except ImportError:
+    print('❌ scrapli: NO instalado')
+
+try:
+    import textfsm
+    print('✅ textfsm: OK')
+except ImportError:
+    print('❌ textfsm: NO instalado')
+
+try:
+    import jinja2
+    print('✅ jinja2:', jinja2.__version__)
+except ImportError:
+    print('❌ jinja2: NO instalado')
+
+try:
+    import yaml
+    print('✅ pyyaml: OK')
+except ImportError:
+    print('❌ pyyaml: NO instalado')
+
+try:
+    import requests
+    print('✅ requests:', requests.__version__)
+except ImportError:
+    print('❌ requests: NO instalado')
+
+try:
+    import rich
+    print('✅ rich: OK')
+except ImportError:
+    print('❌ rich: NO instalado')
+"
 
 # Configurar Git
 echo -e "${YELLOW}⚙️ Configurando Git...${NC}"
