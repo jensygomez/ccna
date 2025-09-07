@@ -3,6 +3,9 @@ configure terminal
 ! Contraseña enable
 enable secret cisco
 
+! Crear usuario para SSH
+username admin secret cisco
+
 ! Configuración de la consola
 line console 0
  password cisco
@@ -10,10 +13,10 @@ line console 0
  logging synchronous
  exit
 
-! Configuración de acceso remoto (VTY)
+! Configuración de acceso remoto (VTY) para Telnet o SSH
 line vty 0 4
- password cisco
- login
+ login local               ! Usará usuario "admin" para SSH
+ transport input ssh telnet
  logging synchronous
  exit
 
@@ -25,6 +28,11 @@ interface vlan 1
 
 ! Configurar la puerta de enlace (default gateway) para acceder desde otra red
 ip default-gateway 192.168.1.1
+
+! Generar claves RSA para SSH
+ip domain-name laboratorio.local
+crypto key generate rsa
+! Tamaño recomendado: 1024 o 2048 bits
 
 end
 write memory
