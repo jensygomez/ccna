@@ -1,0 +1,19 @@
+configure terminal
+enable secret cisco
+
+! Configuración de la consola
+line console 0
+ password cisco
+ login
+ logging synchronous
+ exit
+
+! Configuración de acceso remoto (VTY)
+line vty 0 4
+ password cisco
+ login
+ logging synchronous
+ exit
+
+end
+write memory
