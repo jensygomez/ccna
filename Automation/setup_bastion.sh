@@ -1,5 +1,5 @@
 #!/bin/bash
-# setup_bastion.sh - Configuración inteligente para Bastion_01 (con entorno virtual)
+# setup_bastion.sh - Configuración optimizada para Bastion_01 (Root Mode)
 
 set -e  # Detener en caso de error
 
@@ -12,19 +12,9 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Función para detectar si necesita sudo
-needs_sudo() {
-    [ "$(id -u)" -ne 0 ]
-}
-
-# Función de ejecución inteligente
-run_cmd() {
-    if needs_sudo; then
-        sudo "$@"
-    else
-        "$@"
-    fi
-}
+# Ruta principal del entorno y repositorio
+VENV_PATH="/ccna/venv"
+REPO_PATH="/ccna"
 
 # Función para verificar e instalar paquetes del sistema
 install_package() {
@@ -32,38 +22,24 @@ install_package() {
         echo -e "${GREEN}✅ $1 ya está instalado${NC}"
     else
         echo -e "${YELLOW}📦 Instalando $1...${NC}"
-        run_cmd apt install -y "$1"
+        apt install -y "$1"
     fi
 }
 
-# Detectar si estamos en modo root o usuario normal
-if needs_sudo; then
-    echo -e "${YELLOW}👤 Modo usuario: Se usará sudo cuando sea necesario${NC}"
-else
-    echo -e "${GREEN}🛡️  Modo root: Ejecutando directamente${NC}"
-fi
-
 # Actualizar sistema
 echo -e "${YELLOW}🔄 Actualizando lista de paquetes...${NC}"
-run_cmd apt update || echo -e "${YELLOW}⚠️ Apt update tuvo errores, continuando...${NC}"
+apt update || echo -e "${YELLOW}⚠️ Apt update tuvo errores, continuando...${NC}"
 
-# Instalar herramientas del sistema
+# Instalar herramientas del sistema necesarias
 echo -e "${YELLOW}📦 Instalando herramientas del sistema...${NC}"
-install_package git
-install_package python3
-install_package python3-pip
-install_package python3-venv
-install_package net-tools
-install_package iproute2
-install_package curl
-install_package wget
-install_package openssh-client
+for pkg in git python3 python3-pip python3-venv net-tools iproute2 curl wget openssh-client; do
+    install_package "$pkg"
+done
 
-# Configurar entorno virtual
+# Crear y configurar entorno virtual
 echo -e "${YELLOW}⚙️ Configurando entorno virtual Python...${NC}"
-VENV_PATH="/ccna/venv"
 if [ ! -d "$VENV_PATH" ]; then
-    run_cmd mkdir -p /ccna
+    mkdir -p "$VENV_PATH"
     python3 -m venv "$VENV_PATH"
     echo -e "${GREEN}✅ Entorno virtual creado en $VENV_PATH${NC}"
 else
@@ -75,24 +51,27 @@ source "$VENV_PATH/bin/activate"
 
 # Actualizar pip dentro del venv
 echo -e "${YELLOW}📦 Actualizando pip dentro del entorno virtual...${NC}"
-pip install --upgrade pip
+"$VENV_PATH/bin/pip" install --upgrade pip
 
-# Instalar librerías de automatización dentro del venv
+# Instalar librerías de automatización
 echo -e "${YELLOW}📦 Instalando librerías Python de automatización...${NC}"
-pip install netmiko paramiko napalm nornir scrapli textfsm jinja2 pyyaml requests rich
+"$VENV_PATH/bin/pip" install --upgrade netmiko paramiko napalm nornir scrapli textfsm jinja2 pyyaml requests rich
 
-# Verificar librerías instaladas
+# Verificar librerías instaladas y mostrar versiones
 echo -e "${YELLOW}🔍 Verificando librerías instaladas...${NC}"
-python3 - <<EOF
-try:
-    import netmiko, paramiko, napalm, nornir, scrapli
-    print("✅ Netmiko:", netmiko.__version__)
-    print("✅ Paramiko:", paramiko.__version__)
-    print("✅ NAPALM:", napalm.__version__)
-    print("✅ Scrapli:", scrapli.__version__)
-    print("🎉 Todas las librerías están instaladas correctamente!")
-except ImportError as e:
-    print("❌ Error importando librerías:", e)
+"$VENV_PATH/bin/python" - <<EOF
+import netmiko, paramiko, napalm, nornir, scrapli, textfsm, jinja2, yaml, requests, rich
+print("✅ Netmiko:", netmiko.__version__)
+print("✅ Paramiko:", paramiko.__version__)
+print("✅ NAPALM:", napalm.__version__)
+print("✅ Nornir:", nornir.__version__)
+print("✅ Scrapli:", scrapli.__version__)
+print("✅ TextFSM:", textfsm.__version__)
+print("✅ Jinja2:", jinja2.__version__)
+print("✅ PyYAML:", yaml.__version__)
+print("✅ Requests:", requests.__version__)
+print("✅ Rich:", rich.__version__)
+print("🎉 Todas las librerías están instaladas correctamente!")
 EOF
 
 # Configurar Git
@@ -102,36 +81,28 @@ if command -v git &> /dev/null; then
     git config --global user.email "jensygomez@gmail.com"
     echo -e "${GREEN}✅ Git configurado correctamente${NC}"
 else
-    echo -e "${RED}❌ Git no está instalado, instalando...${NC}"
-    install_package git
-    git config --global user.name "Jensy Gomez"
-    git config --global user.email "jensygomez@gmail.com"
+    echo -e "${RED}❌ Git no está instalado, revisa instalación${NC}"
+    exit 1
 fi
 
-# Clonar repositorio si no existe
-if [ ! -d "/ccna/.git" ]; then
+# Clonar repositorio si no existe o actualizarlo
+if [ ! -d "$REPO_PATH/.git" ]; then
     echo -e "${YELLOW}📥 Clonando repositorio CCNA...${NC}"
-    run_cmd git clone https://github.com/jensygomez/ccna.git /ccna
-    echo -e "${GREEN}✅ Repositorio clonado en /ccna${NC}"
+    git clone https://github.com/jensygomez/ccna.git "$REPO_PATH"
+    echo -e "${GREEN}✅ Repositorio clonado en $REPO_PATH${NC}"
 else
     echo -e "${GREEN}✅ Repositorio ya existe, actualizando...${NC}"
-    cd /ccna && git pull origin main
+    cd "$REPO_PATH" && git pull origin main
 fi
 
 # Crear enlace simbólico si no existe
 if [ ! -L "/automation" ]; then
     echo -e "${YELLOW}🔗 Creando enlace simbólico...${NC}"
-    run_cmd ln -sf /ccna/Automation /automation
+    ln -sf "$REPO_PATH/Automation" /automation
     echo -e "${GREEN}✅ Enlace simbólico creado: /automation${NC}"
 fi
 
-# Configurar permisos adecuados
-if needs_sudo; then
-    echo -e "${YELLOW}🔐 Ajustando permisos...${NC}"
-    run_cmd chown -R $(id -u):$(id -g) /ccna /automation
-fi
-
-# Configurar alias para usar el entorno virtual automáticamente
+# Configurar alias permanentes
 echo -e "${YELLOW}⚙️ Configurando aliases...${NC}"
 grep -qxF 'alias activate-ccna="source /ccna/venv/bin/activate"' ~/.bashrc || echo 'alias activate-ccna="source /ccna/venv/bin/activate"' >> ~/.bashrc
 grep -qxF 'alias automation="cd /automation || cd /ccna/Automation"' ~/.bashrc || echo 'alias automation="cd /automation || cd /ccna/Automation"' >> ~/.bashrc
