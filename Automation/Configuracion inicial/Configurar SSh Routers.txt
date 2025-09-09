@@ -1,0 +1,104 @@
+! Configuración de Seguridad y Acceso Remoto
+! ===========================================
+
+
+! Configurar dominio para generación de claves SSH
+ip domain-name gns3.lab
+
+! Habilitar contraseña encriptada para modo enable
+enable secret cisco
+
+! Configurar autenticación para consola
+line console 0
+ password cisco
+ login
+ logging synchronous
+ exec-timeout 5 0
+ exit
+
+! Configurar usuario administrativo con privilegios máximos
+username cisco privilege 15 secret cisco
+
+! Crear usuario estándar
+username user privilege 1 secret user123
+
+! Generar claves criptográficas para SSH (mínimo 2048 bits)
+crypto key generate rsa modulus 2048
+
+! Configurar SSH
+ip ssh version 2
+ip ssh time-out 60
+ip ssh authentication-retries 2
+
+! Configurar banners de seguridad
+banner motd ^C
+=======================================
+=    SISTEMA DE LABORATORIO GNS3      =
+=    ACCESO NO AUTORIZADO PROHIBIDO   =
+=======================================
+^C
+
+banner login ^C
+Este sistema es solo para uso autorizado.
+Todo acceso está siendo monitoreado y registrado.
+^C
+
+! Configurar líneas VTY para acceso remoto (0-15)
+line vty 0 15
+ login local
+ transport input ssh telnet
+ exec-timeout 10 0
+ session-timeout 10
+ absolute-timeout 30
+ exit
+
+! Configurar logging para monitorización
+logging buffered 8192 debugging
+logging console debugging
+logging monitor debugging
+
+! Configurar timeout de inactividad
+service tcp-keepalives-in
+service tcp-keepalives-out
+
+! Habilitar registro de comandos ejecutados
+archive
+ log config
+  logging enable
+  notify syslog
+  hidekeys
+ exit
+
+! Configurar ACL básica para protección
+ip access-list standard PROTECT-VTY
+ permit 192.168.1.0 0.0.0.255
+ deny any log
+
+! Aplicar ACL a líneas VTY
+line vty 0 15
+ access-class PROTECT-VTY in
+ exit
+
+! Configurar mensaje para usuarios que se conecten
+line vty 0 15
+ authorization exec SSH-AUTH
+ exit
+
+! Configurar parámetros de autenticación
+aaa new-model
+aaa authentication login SSH-AUTH local
+aaa authorization exec SSH-AUTH local
+
+! Configurar servicio de timestamp para logging
+service timestamps debug datetime msec localtime show-timezone
+service timestamps log datetime msec localtime show-timezone
+
+! Guardar configuración
+end
+write memory
+
+! Verificar configuración
+show running-config | section username
+show running-config | section line vty
+show ip ssh
+show crypto key mypubkey rsa
