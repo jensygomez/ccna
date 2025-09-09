@@ -1,6 +1,6 @@
 ! ===========================================
 ! CONFIGURACIÓN COMPLETA ROUTER-01
-! Laboratorio GNS3
+! Laboratorio GNS3 - Incluye red casera 192.168.18.0/24
 ! ===========================================
 
 enable
@@ -65,6 +65,13 @@ ip domain-lookup
 ip name-server 8.8.8.8
 ip name-server 8.8.4.4
 
+! ---- ACL de Protección ----
+ip access-list standard PROTECT-VTY
+ permit 192.168.0.0 0.0.0.255    ! Red Laboratorio GNS3
+ permit 192.168.1.0 0.0.0.255    ! Red secundaria Laboratorio
+ permit 192.168.18.0 0.0.0.255   ! Red Casera Completa
+ deny any log
+
 ! ---- Seguridad VTY ----
 line vty 0 15
  login local
@@ -72,13 +79,6 @@ line vty 0 15
  exec-timeout 10 0
  access-class PROTECT-VTY in
  exit
-
-! ---- ACL de Protección ----
-ip access-list standard PROTECT-VTY
- permit 192.168.0.0, wildcard bits 0.0.0.255
- permit 192.168.1.0, wildcard bits 0.0.0.255
- permit 192.168.18.0, wildcard bits 0.0.0.255
- deny any log
 
 ! ---- Logging y Monitoreo ----
 logging buffered 8192 debugging
@@ -104,3 +104,4 @@ show ip interface brief
 show running-config | section username
 show ip ssh
 show ip access-list PROTECT-VTY
+show logging | include denied
