@@ -1,0 +1,47 @@
+! ---- Hostname ----
+hostname Router-01
+
+! ---- Interfaces ----
+interface GigabitEthernet0/0
+ description Hacia Sw-01 / Bastion
+ ip address 192.168.0.101 255.255.255.0
+ no shutdown
+ duplex auto
+ speed auto
+
+interface GigabitEthernet0/1
+ no ip address
+ shutdown
+ duplex auto
+ speed auto
+
+interface GigabitEthernet0/2
+ no ip address
+ shutdown
+ duplex auto
+ speed auto
+
+interface GigabitEthernet0/3
+ no ip address
+ shutdown
+ duplex auto
+ speed auto
+
+! ---- Routing ----
+ip route 0.0.0.0 0.0.0.0 192.168.0.1   ! Salida hacia Bastion
+
+! ---- DNS ----
+ip domain-lookup
+ip name-server 8.8.8.8
+ip name-server 8.8.4.4
+
+! ---- NAT ----
+! Este router no necesita NAT si todo el NAT lo hace Bastion
+
+! ---- Limpieza de servicios innecesarios ----
+no ip http server
+no ip http secure-server
+
+! ---- Guardar configuración ----
+end
+wr
