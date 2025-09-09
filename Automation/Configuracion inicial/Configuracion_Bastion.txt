@@ -1,4 +1,4 @@
-Bastion# conf t
+Bastion# configure terminal
 
 ! ---- Interfaces ----
 interface GigabitEthernet0/0
