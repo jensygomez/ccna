@@ -1,0 +1,48 @@
+Bastion# conf t
+
+! ---- Interfaces ----
+interface GigabitEthernet0/0
+ description Hacia la nube / Laptop
+ ip address dhcp
+ no shutdown
+ no ip nat outside
+ ip virtual-reassembly in
+ duplex auto
+ speed auto
+
+interface GigabitEthernet0/1
+ description Hacia la red interna 192.168.0.0/24
+ ip address 192.168.0.1 255.255.255.0
+ no shutdown
+ no ip nat inside
+ ip virtual-reassembly in
+ duplex auto
+ speed auto
+
+interface GigabitEthernet0/2
+ no ip address
+ shutdown
+ duplex auto
+ speed auto
+
+interface GigabitEthernet0/3
+ no ip address
+ shutdown
+ duplex auto
+ speed auto
+
+! ---- Routing ----
+ip route 0.0.0.0 0.0.0.0 dhcp   ! Bastion usará la IP que recibió por DHCP para salir a Internet
+
+! ---- DNS ----
+ip name-server 8.8.8.8
+ip name-server 8.8.4.4
+
+! ---- Limpieza NAT ----
+no ip nat inside source list 1 interface GigabitEthernet0/0 overload
+
+! ---- Access-list (opcional, si quieres restringir tráfico) ----
+! access-list 1 permit 192.168.0.0 0.0.0.255
+
+end
+wr
