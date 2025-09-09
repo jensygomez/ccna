@@ -1,7 +1,14 @@
+! ===========================================
 ! Configuración de Seguridad y Acceso Remoto
+! Router: Router-01
 ! ===========================================
 
-conf t
+enable
+configure terminal
+
+! Establecer hostname primero (IMPORTANTE para las claves SSH)
+hostname Router-01
+
 ! Configurar dominio para generación de claves SSH
 ip domain-name gns3.lab
 
@@ -69,15 +76,15 @@ archive
   hidekeys
  exit
 
-! Configurar ACL básica para protección - CORREGIDO
+! Configurar ACL básica para protección
 ip access-list standard PROTECT-VTY
- permit 192.168.0.0 0.0.0.255    ! ← Permite tu red actual
- permit 192.168.1.0 0.0.0.255    ! ← Mantiene tu red original
+ permit 192.168.0.0 0.0.0.255
+ permit 192.168.1.0 0.0.0.255
  deny any log
 
-! Aplicar ACL a líneas VTY - CORREGIDO
+! Aplicar ACL a líneas VTY
 line vty 0 15
- access-class PROTECT-VTY in     ! ← HABILITADA la protección
+ access-class PROTECT-VTY in
  exit
 
 ! Configurar parámetros de autenticación
@@ -93,8 +100,12 @@ service timestamps log datetime msec localtime show-timezone
 end
 write memory
 
-! Verificar configuración
+! ===========================================
+! Verificación de la configuración
+! ===========================================
+
 show running-config | section username
 show running-config | section line vty
 show ip ssh
 show crypto key mypubkey rsa
+show ip access-list PROTECT-VTY
