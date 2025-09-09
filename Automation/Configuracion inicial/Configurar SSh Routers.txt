@@ -1,7 +1,7 @@
 ! Configuración de Seguridad y Acceso Remoto
 ! ===========================================
 
-
+conf t
 ! Configurar dominio para generación de claves SSH
 ip domain-name gns3.lab
 
@@ -69,19 +69,15 @@ archive
   hidekeys
  exit
 
-! Configurar ACL básica para protección
+! Configurar ACL básica para protección - CORREGIDO
 ip access-list standard PROTECT-VTY
- permit 192.168.1.0 0.0.0.255
+ permit 192.168.0.0 0.0.0.255    ! ← Permite tu red actual
+ permit 192.168.1.0 0.0.0.255    ! ← Mantiene tu red original
  deny any log
 
-! Aplicar ACL a líneas VTY
+! Aplicar ACL a líneas VTY - CORREGIDO
 line vty 0 15
- access-class PROTECT-VTY in
- exit
-
-! Configurar mensaje para usuarios que se conecten
-line vty 0 15
- authorization exec SSH-AUTH
+ access-class PROTECT-VTY in     ! ← HABILITADA la protección
  exit
 
 ! Configurar parámetros de autenticación
