@@ -75,8 +75,9 @@ line vty 0 15
 
 ! ---- ACL de Protección ----
 ip access-list standard PROTECT-VTY
- permit 192.168.0.0 0.0.0.255
- permit 192.168.1.0 0.0.0.255
+ permit 192.168.0.0, wildcard bits 0.0.0.255
+ permit 192.168.1.0, wildcard bits 0.0.0.255
+ permit 192.168.18.0, wildcard bits 0.0.0.255
  deny any log
 
 ! ---- Logging y Monitoreo ----
