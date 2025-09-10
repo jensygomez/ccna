@@ -1,83 +1,77 @@
-# modules/bastion_scanner.py
+# modules/bastion_scanner.py (versión simplificada)
 import subprocess
 import telnetlib
 from .utils import validar_ip
 
 
-def escanear_bastion(network_cidr, timeout=1):
-    """Escanea una red para encontrar dispositivos Cisco (Bastion)"""
-    print(f"🔍 Buscando Bastion en {network_cidr}...")
+def escanear_bastion_manual():
+    """Permite ingresar manualmente la IP del Bastion y sus credenciales"""
+    print("\n🎯 CONEXIÓN AL BASTION")
+    print("=" * 40)
 
-    try:
-        import ipaddress
-        network = ipaddress.ip_network(network_cidr, strict=False)
-        bastion_ips = []
+    # Pedir IP del Bastion
+    while True:
+        ip_manual = input("Ingresa la IP del Bastion [192.168.18.110]: ").strip()
+        if not ip_manual:
+            ip_manual = "192.168.18.110"
 
-        # Escanear solo los primeros 20 hosts para mayor velocidad
-        hosts = list(network.hosts())[:20]
-
-        for ip in hosts:
-            ip_str = str(ip)
+        if validar_ip(ip_manual):
+            # Verificar si responde al ping
             try:
-                # Ping rápido
-                result = subprocess.run(['ping', '-c', '1', '-W', str(timeout), ip_str],
+                result = subprocess.run(['ping', '-c', '1', '-W', '1', ip_manual],
                                         capture_output=True, text=True)
 
                 if result.returncode == 0:
-                    # Verificar si responde a Telnet (posible Cisco)
-                    if es_dispositivo_cisco(ip_str):
-                        bastion_ips.append(ip_str)
-                        print(f"✅ Bastion encontrado: {ip_str}")
-
-            except:
+                    print(f"✅ {ip_manual} responde al ping")
+                    break
+                else:
+                    print("❌ La IP no responde al ping. Verifica la conexión.")
+                    continue
+            except Exception as e:
+                print(f"❌ Error: {e}")
                 continue
+        else:
+            print("❌ IP inválida")
+            continue
 
-        return bastion_ips
+    # Pedir credenciales
+    username = input("Usuario del Bastion [bastion]: ").strip() or "bastion"
+    password = input("Password del Bastion [bastion]: ").strip() or "bastion"
 
-    except Exception as e:
-        print(f"❌ Error escaneando red: {e}")
-        return []
-
-
-def es_dispositivo_cisco(ip, timeout=2):
-    """Verifica si una IP es un dispositivo Cisco respondiendo a Telnet"""
-    try:
-        tn = telnetlib.Telnet(ip, timeout=timeout)
-        tn.read_until(b"Username:", timeout=timeout)
-        tn.write(b"cisco\n")
-        tn.read_until(b"Password:", timeout=timeout)
-        tn.write(b"cisco\n")
-        output = tn.read_until(b"#", timeout=timeout).decode()
-        tn.close()
-
-        # Buscar indicadores de Cisco
-        cisco_indicators = ["Bastion", "Router", "Switch", "cisco", "Cisco"]
-        return any(indicator in output for indicator in cisco_indicators)
-
-    except:
-        return False
+    return [{
+        "ip": ip_manual,
+        "username": username,
+        "password": password
+    }]
 
 
-def conectar_bastion(ip, username="cisco", password="cisco"):
+def conectar_bastion(ip, username="bastion", password="bastion"):
     """Intenta conectar al Bastion y devuelve la conexión Telnet"""
     try:
-        print(f"🔄 Conectando a {ip}...")
+        print(f"🔄 Conectando a {ip} con {username}/{password}...")
         tn = telnetlib.Telnet(ip, timeout=10)
 
-        # Login
-        tn.read_until(b"Username:", timeout=5)
+        # Leer prompt de login
+        login_output = tn.read_until(b"Username:", timeout=5)
+        if b"Username:" not in login_output:
+            login_output = tn.read_until(b"login:", timeout=5)
+
+        # Enviar username
         tn.write(username.encode() + b"\n")
-        tn.read_until(b"Password:", timeout=5)
+
+        # Leer prompt de password
+        password_output = tn.read_until(b"Password:", timeout=5)
         tn.write(password.encode() + b"\n")
 
-        # Esperar prompt
+        # Esperar prompt de comando
         output = tn.read_until(b"#", timeout=5).decode()
 
-        if "#" in output:
+        if "#" in output or ">" in output:
             print(f"✅ Conexión exitosa a {ip}")
             return tn
         else:
-            print("❌ No se pudo obtener prompt de comando")
+            print("❌ No se pudo obtener prompt de comando. Verifica las credenciales.")
+            print("💡 Output recibido:", output[:100] + "..." if len(output) > 100 else output)
             return None
 
     except Exception as e:

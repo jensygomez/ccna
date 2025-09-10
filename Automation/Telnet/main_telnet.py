@@ -1,8 +1,8 @@
-# main_telnet.py (nombres corregidos)
+# main_telnet.py (flujo simplificado)
 import os
 import sys
 from modules.network_discovery import descubrir_redes_locales, seleccionar_red
-from modules.bastion_scanner import escanear_bastion, conectar_bastion, escanear_bastion_manual
+from modules.bastion_scanner import escanear_bastion_manual, conectar_bastion
 from modules.internal_scanner import escanear_red_desde_bastion
 
 
@@ -11,42 +11,22 @@ def escaneo_inteligente():
     print("🚀 INICIO DE ESCANEO INTELIGENTE")
     print("=" * 60)
 
-    # 1. Descubrir redes locales
+    # 1. Mostrar redes disponibles (solo informativo)
     interfaces = descubrir_redes_locales()
 
-    # 2. Opción: escaneo automático o manual
-    print("\n🎯 OPCIONES DE ESCANEO:")
-    print("1. Escaneo automático en la red seleccionada")
-    print("2. Ingresar IP manual del Bastion")
-    opcion = input("Selecciona opción [1]: ").strip() or "1"
+    # 2. Conexión directa al Bastion
+    bastion_info = escanear_bastion_manual()
 
-    bastion_ips = []
-
-    if opcion == "1":
-        if not interfaces:
-            return
-
-        # Seleccionar red
-        red = seleccionar_red(interfaces)
-        if not red:
-            return
-
-        # Escanear para encontrar Bastion
-        bastion_ips = escanear_bastion(red['network_cidr'])
-
-    elif opcion == "2":
-        # Escaneo manual
-        bastion_ips = escanear_bastion_manual()
-
-    if not bastion_ips:
-        print("❌ No se encontró el Bastion")
+    if not bastion_info:
         return
 
     # 3. Conectar al Bastion
-    username = input("Usuario del Bastion [cisco]: ").strip() or "cisco"
-    password = input("Password del Bastion [cisco]: ").strip() or "cisco"
+    tn = conectar_bastion(
+        bastion_info[0]['ip'],
+        bastion_info[0]['username'],
+        bastion_info[0]['password']
+    )
 
-    tn = conectar_bastion(bastion_ips[0], username, password)
     if not tn:
         return
 
