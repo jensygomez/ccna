@@ -1,51 +1,51 @@
-# modules/utils.py
-import subprocess
-import ipaddress
-import netifaces
+# modules/utils.py (agregar estas funciones)
+import csv
+import os
 
-def validar_ip(ip):
-    """Validar formato de dirección IP"""
+
+def leer_base_datos(db_path="db/dispositivos.csv"):
+    """Lee la base de datos de dispositivos"""
+    dispositivos = []
+
+    if not os.path.exists(db_path):
+        print("⚠️  Base de datos no encontrada. Usando valores por defecto.")
+        return dispositivos
+
     try:
-        ipaddress.ip_address(ip)
-        return True
-    except:
-        return False
+        with open(db_path, 'r', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                dispositivos.append(row)
+        return dispositivos
+    except Exception as e:
+        print(f"❌ Error leyendo base de datos: {e}")
+        return []
 
-def obtener_interfaces_red():
-    """Obtiene todas las interfaces de red activas"""
-    interfaces = []
-    for interface in netifaces.interfaces():
-        try:
-            # Obtener direcciones IPv4
-            addrs = netifaces.ifaddresses(interface)
-            if netifaces.AF_INET in addrs:
-                for addr_info in addrs[netifaces.AF_INET]:
-                    if 'addr' in addr_info and addr_info['addr'] != '127.0.0.1':
-                        interfaces.append({
-                            'interface': interface,
-                            'ip': addr_info['addr'],
-                            'netmask': addr_info.get('netmask', '255.255.255.0'),
-                            'gateway': obtener_gateway(interface)
-                        })
-        except:
-            continue
-    return interfaces
 
-def obtener_gateway(interface):
-    """Obtiene el gateway de una interfaz"""
-    try:
-        gateways = netifaces.gateways()
-        if netifaces.AF_INET in gateways:
-            for gw in gateways[netifaces.AF_INET]:
-                if gw[1] == interface:
-                    return gw[0]
-    except:
-        return None
-    return None
+def obtener_redes_de_db(dispositivos):
+    """Extrae las redes únicas de la base de datos"""
+    redes = set()
 
-def calcular_cidr(netmask):
-    """Convierte máscara de red a notación CIDR"""
-    try:
-        return sum(bin(int(x)).count('1') for x in netmask.split('.'))
-    except:
-        return 24  # Valor por defecto
+    for dispositivo in dispositivos:
+        ip = dispositivo.get('IP', '')
+        if ip and '.' in ip:
+            # Extraer red (primeros 3 octetos)
+            octetos = ip.split('.')
+            if len(octetos) == 4:
+                red = f"{octetos[0]}.{octetos[1]}.{octetos[2]}.0/24"
+                redes.add(red)
+
+    return list(redes)
+
+
+def obtener_dispositivos_por_red(dispositivos, red):
+    """Filtra dispositivos por red"""
+    dispositivos_red = []
+    red_base = red.split('.0/24')[0]  # Ej: 192.168.0.0/24 → 192.168.0
+
+    for dispositivo in dispositivos:
+        ip = dispositivo.get('IP', '')
+        if ip and ip.startswith(red_base):
+            dispositivos_red.append(dispositivo)
+
+    return dispositivos_red
