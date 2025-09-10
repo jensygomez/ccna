@@ -1,4 +1,4 @@
-# main_telnet.py (con opción manual)
+# main_telnet.py (nombres corregidos)
 import os
 import sys
 from modules.network_discovery import descubrir_redes_locales, seleccionar_red
