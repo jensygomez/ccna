@@ -1,8 +1,8 @@
-# main_telnet.py (versión modular)
+# main_telnet.py (con opción manual)
 import os
 import sys
 from modules.network_discovery import descubrir_redes_locales, seleccionar_red
-from modules.bastion_scanner import escanear_bastion, conectar_bastion
+from modules.bastion_scanner import escanear_bastion, conectar_bastion, escanear_bastion_manual
 from modules.internal_scanner import escanear_red_desde_bastion
 
 
@@ -13,21 +13,36 @@ def escaneo_inteligente():
 
     # 1. Descubrir redes locales
     interfaces = descubrir_redes_locales()
-    if not interfaces:
-        return
 
-    # 2. Seleccionar red
-    red = seleccionar_red(interfaces)
-    if not red:
-        return
+    # 2. Opción: escaneo automático o manual
+    print("\n🎯 OPCIONES DE ESCANEO:")
+    print("1. Escaneo automático en la red seleccionada")
+    print("2. Ingresar IP manual del Bastion")
+    opcion = input("Selecciona opción [1]: ").strip() or "1"
 
-    # 3. Escanear para encontrar Bastion
-    bastion_ips = escanear_bastion(red['network_cidr'])
+    bastion_ips = []
+
+    if opcion == "1":
+        if not interfaces:
+            return
+
+        # Seleccionar red
+        red = seleccionar_red(interfaces)
+        if not red:
+            return
+
+        # Escanear para encontrar Bastion
+        bastion_ips = escanear_bastion(red['network_cidr'])
+
+    elif opcion == "2":
+        # Escaneo manual
+        bastion_ips = escanear_bastion_manual()
+
     if not bastion_ips:
-        print("❌ No se encontró el Bastion en la red")
+        print("❌ No se encontró el Bastion")
         return
 
-    # 4. Conectar al Bastion
+    # 3. Conectar al Bastion
     username = input("Usuario del Bastion [cisco]: ").strip() or "cisco"
     password = input("Password del Bastion [cisco]: ").strip() or "cisco"
 
@@ -35,11 +50,11 @@ def escaneo_inteligente():
     if not tn:
         return
 
-    # 5. Escanear red interna desde el Bastion
+    # 4. Escanear red interna desde el Bastion
     red_interna = input("Red interna a escanear [192.168.0.0/24]: ").strip() or "192.168.0.0/24"
     dispositivos = escanear_red_desde_bastion(tn, red_interna)
 
-    # 6. Mostrar resultados
+    # 5. Mostrar resultados
     print(f"\n🎯 RESULTADOS DEL ESCANEO:")
     print("=" * 60)
     print(f"Red escaneada: {red_interna}")
@@ -48,7 +63,7 @@ def escaneo_inteligente():
     for dispositivo in dispositivos:
         print(f"   - {dispositivo}")
 
-    # 7. Cerrar conexión
+    # 6. Cerrar conexión
     tn.write(b"exit\n")
     tn.close()
     print("🔌 Conexión cerrada")
