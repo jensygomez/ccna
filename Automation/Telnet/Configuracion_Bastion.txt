@@ -1,11 +1,36 @@
-Bastion# configure terminal
+configure terminal
+
+! ---- Hostname y Dominio ----
+hostname Bastion
+ip domain-name gns3.lab
+
+! ---- Contraseña Enable ----
+enable secret cisco
+
+! ---- Configuración de Consola ----
+line console 0
+ password bastion
+ login
+ logging synchronous
+ exec-timeout 5 0
+ exit
+
+! ---- Usuarios ----
+username bastion privilege 15 secret bastion
+username user privilege 1 secret user123
+
+! ---- SSH ----
+crypto key generate rsa modulus 2048
+ip ssh version 2
+ip ssh time-out 60
+ip ssh authentication-retries 2
 
 ! ---- Interfaces ----
 interface GigabitEthernet0/0
  description Hacia la nube / Laptop
- ip address dhcp
+ ip address 192.168.18.110 255.255.255.0
  no shutdown
- no ip nat outside
+ ip nat outside
  ip virtual-reassembly in
  duplex auto
  speed auto
@@ -14,7 +39,7 @@ interface GigabitEthernet0/1
  description Hacia la red interna 192.168.0.0/24
  ip address 192.168.0.1 255.255.255.0
  no shutdown
- no ip nat inside
+ ip nat inside
  ip virtual-reassembly in
  duplex auto
  speed auto
@@ -32,17 +57,55 @@ interface GigabitEthernet0/3
  speed auto
 
 ! ---- Routing ----
-ip route 0.0.0.0 0.0.0.0 dhcp   ! Bastion usará la IP que recibió por DHCP para salir a Internet
+ip route 0.0.0.0 0.0.0.0 192.168.18.1
+
+! ---- NAT Configuration ----
+access-list 1 permit 192.168.0.0 0.0.0.255
+ip nat inside source list 1 interface GigabitEthernet0/0 overload
 
 ! ---- DNS ----
+ip domain-lookup
 ip name-server 8.8.8.8
 ip name-server 8.8.4.4
 
-! ---- Limpieza NAT ----
-no ip nat inside source list 1 interface GigabitEthernet0/0 overload
+! ---- ACL de Protección ----
+ip access-list standard PROTECT-VTY
+ permit 192.168.0.0 0.0.0.255    ! Red Laboratorio GNS3
+ permit 192.168.18.0 0.0.0.255   ! Red Casera Completa
+ deny any log
 
-! ---- Access-list (opcional, si quieres restringir tráfico) ----
-! access-list 1 permit 192.168.0.0 0.0.0.255
+! ---- Seguridad VTY ----
+line vty 0 15
+ login local
+ transport input ssh telnet
+ exec-timeout 10 0
+ access-class PROTECT-VTY in
+ exit
 
+! ---- Logging y Monitoreo ----
+logging buffered 8192 debugging
+service tcp-keepalives-in
+service tcp-keepalives-out
+
+! ---- Servicios Innecesarios ----
+no ip http server
+no ip http secure-server
+
+! ---- Timestamps ----
+service timestamps debug datetime msec localtime show-timezone
+service timestamps log datetime msec localtime show-timezone
+
+! ---- Guardar Configuración ----
 end
-wr
+write memory
+
+! ===========================================
+! VERIFICACIONES FINALES
+! ===========================================
+show ip interface brief
+show running-config | section username
+show ip ssh
+show ip access-list PROTECT-VTY
+show ip nat translations
+show ip nat statistics
+ping 192.168.18.1
