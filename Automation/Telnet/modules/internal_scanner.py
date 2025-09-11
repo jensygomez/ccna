@@ -1,6 +1,7 @@
 # modules/internal_scanner.py
 import ipaddress
 from modules.database_manager import obtener_redes_de_db
+
 from .utils import leer_base_datos, obtener_dispositivos_por_red
 
 
@@ -13,7 +14,7 @@ def mostrar_y_seleccionar_red():
         print("💡 Ejecuta primero un escaneo de red o usa valores por defecto")
         return "192.168.0.0/24"  # Valor por defecto
 
-    redes = obtener_redes_de_db(dispositivos)
+    redes = obtener_redes_de_db()
 
     if not redes:
         print("❌ No se pudieron extraer redes de la base de datos")
