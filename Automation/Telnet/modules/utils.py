@@ -104,4 +104,3 @@ def normalizar_red(red_input):
             if len(octetos) == 4:
                 return '.'.join(octetos[:3]) + '.0/24'
     return red_input
-EOF

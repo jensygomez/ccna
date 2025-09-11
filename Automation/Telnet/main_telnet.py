@@ -1,7 +1,6 @@
-# main_telnet.py (con debug inicial)
+# main_telnet.py (versión corregida)
 import os
 import sys
-
 
 def main():
     """Función principal"""
@@ -14,7 +13,7 @@ def main():
     sys.path.append(modules_path)
 
     try:
-        from modules.network_discovery import descubrir_redes_locales
+        from modules.network_discovery import descubrir_redes_locales, mostrar_redes
         from modules.bastion_scanner import escanear_bastion_manual, conectar_bastion
         from modules.internal_scanner import mostrar_y_seleccionar_red, escanear_red_desde_bastion
 
@@ -35,19 +34,18 @@ def main():
         import traceback
         traceback.print_exc()
 
-
 def escaneo_inteligente():
     """Flujo completo de escaneo inteligente"""
     print("\n" + "=" * 60)
     print("🚀 INICIO DE ESCANEO INTELIGENTE")
     print("=" * 60)
 
-    # 1. Mostrar redes disponibles (solo informativo)
-    print("🔍 Detectando redes locales...")
-    interfaces = descubrir_redes_locales()
+    # 1. Descubrir redes locales (solo informativo)
+    redes = descubrir_redes_locales()
+    mostrar_redes(redes)  # Mostrar información de redes
 
     # 2. Conexión al Bastion
-    print("🔗 Conectando al Bastion...")
+    print("\n🔗 Conectando al Bastion...")
     bastion_info = escanear_bastion_manual()
 
     if not bastion_info:
@@ -66,11 +64,11 @@ def escaneo_inteligente():
         return
 
     # 4. Selección de red desde BD
-    print("📊 Consultando base de datos...")
+    print("\n📊 Consultando base de datos...")
     red_interna = mostrar_y_seleccionar_red()
 
     # 5. Escanear red interna desde el Bastion
-    print("🔍 Escaneando red interna...")
+    print("\n🔍 Escaneando red interna...")
     dispositivos = escanear_red_desde_bastion(tn, red_interna)
 
     # 6. Mostrar resultados
@@ -86,7 +84,6 @@ def escaneo_inteligente():
     tn.write(b"exit\n")
     tn.close()
     print("🔌 Conexión cerrada")
-
 
 if __name__ == "__main__":
     main()
