@@ -1,5 +1,6 @@
 # modules/internal_scanner.py
 import ipaddress
+from modules.database_manager import obtener_redes_de_db
 from .utils import leer_base_datos, obtener_dispositivos_por_red
 
 
