@@ -1,4 +1,4 @@
-# main_telnet.py (versión corregida)
+# main_telnet.py (versión corregida y estable)
 import os
 import sys
 
@@ -6,6 +6,8 @@ import sys
 from modules.network_discovery import descubrir_redes_locales, mostrar_redes
 from modules.bastion_scanner import escanear_bastion_manual, conectar_bastion
 from modules.internal_scanner import mostrar_y_seleccionar_red, escanear_red_desde_bastion
+from modules.database_manager import guardar_dispositivo   # <--- Importación para guardar en BD
+
 
 def main():
     """Función principal"""
@@ -34,6 +36,7 @@ def main():
         print(f"❌ Error inesperado: {e}")
         import traceback
         traceback.print_exc()
+
 
 def escaneo_inteligente():
     """Flujo completo de escaneo inteligente"""
@@ -72,17 +75,35 @@ def escaneo_inteligente():
     print("\n🔍 Escaneando red interna...")
     dispositivos = escanear_red_desde_bastion(tn, red_interna)
 
-    # 6. Mostrar resultados
+    # 6. Procesar resultados y guardar en CSV
     print(f"\n🎯 RESULTADOS DEL ESCANEO:")
     print("=" * 60)
     print(f"Red escaneada: {red_interna}")
     print(f"Dispositivos activos: {len(dispositivos)}")
 
     for dispositivo in dispositivos:
-        print(f"   - {dispositivo}")
+        # Como dispositivos es una lista de IPs (strings), lo tratamos así
+        ip = dispositivo
+        hostname = "Desconocido"
+        tipo = "N/A"
+
+        print(f"   - {ip} ({hostname} - {tipo})")
+
+        # Guardar en la base de datos (con datos mínimos)
+        try:
+            guardar_dispositivo(
+                ip=ip,
+                mac="N/A",  # en el futuro se puede obtener vía ARP
+                red=red_interna,
+                hostname=hostname,
+                usuario="cisco",
+                password="cisco123"
+            )
+            print(f"✅ Dispositivo {ip} guardado en la BD")
+        except Exception as e:
+            print(f"⚠️ No se pudo guardar {ip} en la base de datos: {e}")
 
     # 7. Cerrar conexión
-    # ==== CIERRE SEGURO DE LA SESIÓN TELNET ====
     try:
         tn.write(b"exit\n")
         tn.close()
