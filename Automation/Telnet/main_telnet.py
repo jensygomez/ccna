@@ -2,6 +2,11 @@
 import os
 import sys
 
+# Importaciones globales
+from modules.network_discovery import descubrir_redes_locales, mostrar_redes
+from modules.bastion_scanner import escanear_bastion_manual, conectar_bastion
+from modules.internal_scanner import mostrar_y_seleccionar_red, escanear_red_desde_bastion
+
 def main():
     """Función principal"""
     print("🚀 Iniciando Telnet Manager...")
@@ -13,10 +18,6 @@ def main():
     sys.path.append(modules_path)
 
     try:
-        from modules.network_discovery import descubrir_redes_locales, mostrar_redes
-        from modules.bastion_scanner import escanear_bastion_manual, conectar_bastion
-        from modules.internal_scanner import mostrar_y_seleccionar_red, escanear_red_desde_bastion
-
         print("✅ Módulos importados correctamente")
         escaneo_inteligente()
 
