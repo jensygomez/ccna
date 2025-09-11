@@ -1,13 +1,20 @@
+enable
 configure terminal
 
-! ---- Hostname y Dominio ----
+! ==============================
+! Hostname y Dominio
+! ==============================
 hostname Bastion
 ip domain-name gns3.lab
 
-! ---- Contraseña Enable ----
+! ==============================
+! Contraseña Enable
+! ==============================
 enable secret cisco
 
-! ---- Configuración de Consola ----
+! ==============================
+! Configuración de Consola
+! ==============================
 line console 0
  password bastion
  login
@@ -15,17 +22,23 @@ line console 0
  exec-timeout 5 0
  exit
 
-! ---- Usuarios ----
+! ==============================
+! Usuarios
+! ==============================
 username bastion privilege 15 secret bastion
 username user privilege 1 secret user123
 
-! ---- SSH ----
+! ==============================
+! SSH
+! ==============================
 crypto key generate rsa modulus 2048
 ip ssh version 2
 ip ssh time-out 60
 ip ssh authentication-retries 2
 
-! ---- Interfaces ----
+! ==============================
+! Interfaces
+! ==============================
 interface GigabitEthernet0/0
  description Hacia la nube / Laptop
  ip address 192.168.18.110 255.255.255.0
@@ -56,25 +69,35 @@ interface GigabitEthernet0/3
  duplex auto
  speed auto
 
-! ---- Routing ----
+! ==============================
+! Routing
+! ==============================
 ip route 0.0.0.0 0.0.0.0 192.168.18.1
 
-! ---- NAT Configuration ----
+! ==============================
+! NAT Configuration
+! ==============================
 access-list 1 permit 192.168.0.0 0.0.0.255
 ip nat inside source list 1 interface GigabitEthernet0/0 overload
 
-! ---- DNS ----
+! ==============================
+! DNS
+! ==============================
 ip domain-lookup
 ip name-server 8.8.8.8
 ip name-server 8.8.4.4
 
-! ---- ACL de Protección ----
+! ==============================
+! ACL de Protección
+! ==============================
 ip access-list standard PROTECT-VTY
  permit 192.168.0.0 0.0.0.255    ! Red Laboratorio GNS3
  permit 192.168.18.0 0.0.0.255   ! Red Casera Completa
  deny any log
 
-! ---- Seguridad VTY ----
+! ==============================
+! Seguridad VTY
+! ==============================
 line vty 0 15
  login local
  transport input ssh telnet
@@ -82,26 +105,34 @@ line vty 0 15
  access-class PROTECT-VTY in
  exit
 
-! ---- Logging y Monitoreo ----
+! ==============================
+! Logging y Monitoreo
+! ==============================
 logging buffered 8192 debugging
 service tcp-keepalives-in
 service tcp-keepalives-out
 
-! ---- Servicios Innecesarios ----
+! ==============================
+! Servicios Innecesarios
+! ==============================
 no ip http server
 no ip http secure-server
 
-! ---- Timestamps ----
+! ==============================
+! Timestamps
+! ==============================
 service timestamps debug datetime msec localtime show-timezone
 service timestamps log datetime msec localtime show-timezone
 
-! ---- Guardar Configuración ----
+! ==============================
+! Guardar Configuración
+! ==============================
 end
 write memory
 
-! ===========================================
-! VERIFICACIONES FINALES
-! ===========================================
+! ==============================
+! Verificaciones
+! ==============================
 show ip interface brief
 show running-config | section username
 show ip ssh
