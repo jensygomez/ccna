@@ -10,7 +10,7 @@ ip domain-name gns3.lab
 ! ==============================
 ! Contraseña Enable
 ! ==============================
-enable secret cisco
+enable secret bastion
 
 ! ==============================
 ! Configuración de Consola
