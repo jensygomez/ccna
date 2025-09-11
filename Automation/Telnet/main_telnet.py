@@ -82,9 +82,16 @@ def escaneo_inteligente():
         print(f"   - {dispositivo}")
 
     # 7. Cerrar conexión
-    tn.write(b"exit\n")
-    tn.close()
-    print("🔌 Conexión cerrada")
+    # ==== CIERRE SEGURO DE LA SESIÓN TELNET ====
+    try:
+        tn.write(b"exit\n")
+        tn.close()
+        print("✅ Sesión Telnet cerrada correctamente")
+    except BrokenPipeError:
+        print("⚠️ La sesión Telnet ya estaba cerrada, no se pudo enviar 'exit'")
+    except Exception as e:
+        print(f"⚠️ Error cerrando la sesión Telnet: {e}")
+
 
 if __name__ == "__main__":
     main()
