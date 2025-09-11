@@ -48,8 +48,7 @@ def mostrar_y_seleccionar_red():
 
 
 def escanear_red_desde_bastion(tn, red_interna="192.168.0.0/24"):
-    """Escanea una red interna desde el Bastion usando la BD"""
-    # Leer dispositivos de la BD para esta red
+    """Escanea una red interna desde el Bastion usando la BD con doble verificación"""
     dispositivos = leer_base_datos()
     dispositivos_red = obtener_dispositivos_por_red(dispositivos, red_interna)
 
@@ -71,18 +70,25 @@ def escanear_red_desde_bastion(tn, red_interna="192.168.0.0/24"):
             continue
 
         try:
-            # Ejecutar ping desde el Bastion
-            tn.write(f"ping {ip_str} repeat 2 timeout 1\n".encode())
+            # Primer ping
+            tn.write(f"ping {ip_str} repeat 3 timeout 2\n".encode())
             output = tn.read_until(b"Success rate", timeout=3).decode()
 
             if "Success rate is 100 percent" in output:
                 dispositivos_activos.append(ip_str)
                 print(f"✅ {ip_str} - {nombre} ({tipo}) - Activo")
-            elif "Success rate is 0 percent" not in output:
+            elif "Success rate is 0 percent" in output:
+                # Segundo ping para confirmar
+                tn.write(f"ping {ip_str} repeat 2 timeout 1\n".encode())
+                output2 = tn.read_until(b"Success rate", timeout=3).decode()
+                if "Success rate is 0 percent" in output2:
+                    print(f"❌ {ip_str} - {nombre} ({tipo}) - Inactivo")
+                else:
+                    dispositivos_activos.append(ip_str)
+                    print(f"⚠️  {ip_str} - {nombre} ({tipo}) - Activo (con pérdidas)")
+            else:
                 dispositivos_activos.append(ip_str)
                 print(f"⚠️  {ip_str} - {nombre} ({tipo}) - Activo (con pérdidas)")
-            else:
-                print(f"❌ {ip_str} - {nombre} ({tipo}) - Inactivo")
 
             # Limpiar buffer
             try:
@@ -94,6 +100,7 @@ def escanear_red_desde_bastion(tn, red_interna="192.168.0.0/24"):
             print(f"❌ Error escaneando {ip_str}: {e}")
 
     return dispositivos_activos
+
 
 
 def escanear_rango_completo(tn, red_interna):
