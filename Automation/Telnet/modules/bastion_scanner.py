@@ -1,78 +1,105 @@
-# modules/bastion_scanner.py (versión simplificada)
-import subprocess
-import telnetlib
-from .utils import validar_ip
+# modules/bastion_scanner.py
+from .network_discovery import descubrir_redes_locales
+
+
+def seleccionar_ip_red(redes_detectadas):
+    """Permite seleccionar una IP de la red detectada"""
+    print("\n🎯 SELECCIONA UNA RED PARA EL BASTION")
+    print("=" * 40)
+
+    # Mostrar opciones de redes
+    for i, red in enumerate(redes_detectadas, 1):
+        print(f"{i}. Red: {red['red']}/24 - Interfaz: {red['interface']}")
+
+    print(f"{len(redes_detectadas) + 1}. Ingresar IP manualmente")
+    print(f"{len(redes_detectadas) + 2}. Usar IP por defecto (192.168.18.110)")
+
+    # Solicitar selección
+    while True:
+        try:
+            opcion = input(f"\nSelecciona una opción [1-{len(redes_detectadas) + 2}]: ").strip()
+
+            if not opcion:
+                return "192.168.18.110"  # Default
+
+            opcion = int(opcion)
+
+            if 1 <= opcion <= len(redes_detectadas):
+                red_seleccionada = redes_detectadas[opcion - 1]
+                ip_base = red_seleccionada['red'][:-1]  # Remover el último 0
+                return f"{ip_base}110"  # Ejemplo: 192.168.18.110
+
+            elif opcion == len(redes_detectadas) + 1:
+                return input("Ingresa la IP manualmente: ").strip() or "192.168.18.110"
+
+            elif opcion == len(redes_detectadas) + 2:
+                return "192.168.18.110"
+
+            else:
+                print("❌ Opción inválida. Intenta nuevamente.")
+
+        except ValueError:
+            print("❌ Por favor ingresa un número válido.")
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            return "192.168.18.110"
 
 
 def escanear_bastion_manual():
-    """Permite ingresar manualmente la IP del Bastion y sus credenciales"""
+    """Escanea y configura conexión al bastion de forma manual con selección de red"""
     print("\n🎯 CONEXIÓN AL BASTION")
     print("=" * 40)
 
-    # Pedir IP del Bastion
-    while True:
-        ip_manual = input("Ingresa la IP del Bastion [192.168.18.110]: ").strip()
-        if not ip_manual:
-            ip_manual = "192.168.18.110"
+    # Obtener redes detectadas
+    redes = descubrir_redes_locales()
 
-        if validar_ip(ip_manual):
-            # Verificar si responde al ping
-            try:
-                result = subprocess.run(['ping', '-c', '1', '-W', '1', ip_manual],
-                                        capture_output=True, text=True)
+    # Seleccionar IP automáticamente
+    ip_bastion = seleccionar_ip_red(redes)
 
-                if result.returncode == 0:
-                    print(f"✅ {ip_manual} responde al ping")
-                    break
-                else:
-                    print("❌ La IP no responde al ping. Verifica la conexión.")
-                    continue
-            except Exception as e:
-                print(f"❌ Error: {e}")
-                continue
-        else:
-            print("❌ IP inválida")
-            continue
+    # Configuración de credenciales
+    username = input("Ingresa el username [cisco]: ").strip() or "cisco"
+    password = input("Ingresa el password [cisco123]: ").strip() or "cisco123"
 
-    # Pedir credenciales
-    username = input("Usuario del Bastion [bastion]: ").strip() or "bastion"
-    password = input("Password del Bastion [bastion]: ").strip() or "bastion"
+    print(f"\n✅ Configuración del Bastion:")
+    print(f"   IP: {ip_bastion}")
+    print(f"   Username: {username}")
+    print(f"   Password: {password}")
 
     return [{
-        "ip": ip_manual,
-        "username": username,
-        "password": password
+        'ip': ip_bastion,
+        'username': username,
+        'password': password,
+        'protocol': 'telnet'
     }]
 
 
-def conectar_bastion(ip, username="bastion", password="bastion"):
-    """Intenta conectar al Bastion y devuelve la conexión Telnet"""
+# Las otras funciones (conectar_bastion, etc.) se mantienen igual
+def conectar_bastion(host, username, password, port=23):
+    """Conecta al dispositivo via Telnet"""
+    import telnetlib
+    import time
+
     try:
-        print(f"🔄 Conectando a {ip} con {username}/{password}...")
-        tn = telnetlib.Telnet(ip, timeout=10)
+        print(f"🔗 Conectando a {host}...")
+        tn = telnetlib.Telnet(host, port, timeout=10)
 
-        # Leer prompt de login
-        login_output = tn.read_until(b"Username:", timeout=5)
-        if b"Username:" not in login_output:
-            login_output = tn.read_until(b"login:", timeout=5)
+        # Login process
+        tn.read_until(b"Username: ", timeout=5)
+        tn.write(username.encode('ascii') + b"\n")
 
-        # Enviar username
-        tn.write(username.encode() + b"\n")
+        tn.read_until(b"Password: ", timeout=5)
+        tn.write(password.encode('ascii') + b"\n")
 
-        # Leer prompt de password
-        password_output = tn.read_until(b"Password:", timeout=5)
-        tn.write(password.encode() + b"\n")
+        time.sleep(1)
 
-        # Esperar prompt de comando
-        output = tn.read_until(b"#", timeout=5).decode()
-
-        if "#" in output or ">" in output:
-            print(f"✅ Conexión exitosa a {ip}")
-            return tn
-        else:
-            print("❌ No se pudo obtener prompt de comando. Verifica las credenciales.")
-            print("💡 Output recibido:", output[:100] + "..." if len(output) > 100 else output)
+        # Verificar conexión exitosa
+        output = tn.read_very_eager().decode('ascii')
+        if "Login invalid" in output or "Failed" in output:
+            print("❌ Error de autenticación")
             return None
+
+        print("✅ Conexión exitosa al Bastion!")
+        return tn
 
     except Exception as e:
         print(f"❌ Error de conexión: {e}")
