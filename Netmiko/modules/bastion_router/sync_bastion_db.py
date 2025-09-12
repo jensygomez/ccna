@@ -1,38 +1,85 @@
-import sqlite3
-from modules.database_manager.db_utils import init_db, add_device, add_interface
-from .connect_bastion import connect_to_bastion
 
-# Ruta de la base de datos (misma que en db_utils)
+# modules/bastion_router/sync_bastion_db.py
+from .connect_bastion import connect_to_bastion
+from modules.database_manager.db_utils import init_db, add_device, add_interface, update_interface_mac, add_log
+import sqlite3
+import re
+
+
 DB_PATH = "modules/database/net_devices.db"
 
-def sync_bastion_interfaces(device_name="Bastion", device_ip="192.168.18.110", device_mac=None, model="ISR4331", location="Home Lab"):
+def parse_interfaces(output):
     """
-    Conecta al Bastion, obtiene las interfaces y actualiza la DB.
+    Recibe la salida de 'show ip interface brief' o 'show interface'
+    y devuelve una lista de diccionarios con: name, ip, mac, status, protocol
     """
-    # Inicializa DB si no existe
-    init_db()
+    interfaces = []
+    lines = output.splitlines()
+    for line in lines:
+        # Evitamos líneas vacías o encabezados
+        if re.match(r'^\s*(Interface|---)', line) or line.strip() == "":
+            continue
 
-    # Registrar el dispositivo (si ya existe, devuelve el device_id existente)
-    device_id = add_device(device_name, "Router", device_ip, device_mac, model, location)
+        # Ejemplo: GigabitEthernet0/0         192.168.18.110  YES manual up                    up
+        parts = line.split()
+        if len(parts) >= 6:
+            name = parts[0]
+            ip = parts[1]
+            status = parts[-2]
+            protocol = parts[-1]
+            # Inicializamos MAC como N/A, luego podemos intentar obtenerla con show interface
+            interfaces.append({"name": name, "ip": ip, "mac": "N/A", "status": status, "protocol": protocol})
+    return interfaces
 
-    # Conectarse al Bastion y obtener interfaces
+def sync_interfaces():
+    print("🔹 Connecting to Bastion to sync interfaces...")
     output = connect_to_bastion()
     if not output:
         print("❌ Could not retrieve interfaces from Bastion.")
         return
 
-    # Procesar cada línea de show ip interface brief
-    lines = output.splitlines()
-    for line in lines[1:]:  # saltamos header
-        parts = line.split()
-        if len(parts) < 6:
-            continue
-        name, ip, ok, method, status, protocol = parts[:6]
-        # Insertar o actualizar la interfaz en la base de datos
-        add_interface(device_id, name=name, ip=ip, status=status, description="", mac=None)
+    interfaces = parse_interfaces(output)
 
-    print("✅ Interfaces synced with the database.")
+    # Inicializamos DB
+    init_db()
 
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # Verificamos que el dispositivo Bastion esté en la DB
+    cursor.execute("SELECT id FROM devices WHERE ip=?", ("192.168.18.110",))
+    row = cursor.fetchone()
+    if row:
+        device_id = row[0]
+    else:
+        device_id = add_device(
+            name="Bastion",
+            type_="Router",
+            ip="192.168.18.110",
+            mac="N/A",
+            model="ISR4331",
+            location="Home Lab"
+        )
+
+    # Iteramos interfaces y actualizamos DB
+    for iface in interfaces:
+        # Verificamos si la interfaz ya existe
+        cursor.execute("SELECT id, mac FROM interfaces WHERE device_id=? AND name=?", (device_id, iface["name"]))
+        row = cursor.fetchone()
+        if row:
+            iface_id, mac_db = row
+            if mac_db != iface["mac"] and iface["mac"] != "N/A":
+                update_interface_mac(iface_id, iface["mac"])
+                add_log(device_id, f"Updated MAC for {iface['name']}", f"{mac_db} -> {iface['mac']}")
+                print(f"⚡ Updated MAC for {iface['name']}: {mac_db} -> {iface['mac']}")
+        else:
+            add_interface(device_id, iface["name"], iface["mac"], iface["ip"], iface["status"])
+            add_log(device_id, f"Added interface {iface['name']}", str(iface))
+            print(f"➕ Added new interface {iface['name']}")
+
+    conn.commit()
+    conn.close()
+    print("✅ Bastion interfaces synchronized with database.")
 
 if __name__ == "__main__":
-    sync_bastion_interfaces()
+    sync_interfaces()
