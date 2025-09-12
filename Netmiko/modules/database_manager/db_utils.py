@@ -171,6 +171,28 @@ def get_devices():
     devices = cursor.fetchall()
     conn.close()
     return devices
+def get_last_log_for_interface(device_id, interface_name):
+    """
+    Retorna el último Output registrado en logs para un dispositivo y una interfaz.
+    Si no hay logs previos, retorna None.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT output 
+        FROM logs 
+        WHERE device_id = ? AND command = ?
+        ORDER BY executed_at DESC
+        LIMIT 1
+    """, (device_id, f"Sync {interface_name}"))
+    
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        return row[0]
+    return None
 
 
 # ------------------------------

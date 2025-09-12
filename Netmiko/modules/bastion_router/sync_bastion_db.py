@@ -1,10 +1,9 @@
 # modules/bastion_router/sync_bastion_db.py
 from .connect_bastion import connect_to_bastion
 from modules.database_manager.db_utils import (
-    init_db, add_or_update_device, add_or_update_interface, add_log
+    init_db, add_or_update_device, add_or_update_interface, add_log, get_last_log_for_interface
 )
 
-import sqlite3
 import os
 
 DB_PATH = os.path.join("modules", "database", "net_devices.db")
@@ -45,8 +44,11 @@ def sync_bastion():
             description=""
         )
 
-        # Registramos log
-        add_log(device_id, f"Sync {name}", f"IP={ip}, MAC={mac}, STATUS={status}")
+        # Registramos log solo si hubo cambio
+        log_output = f"IP={ip}, MAC={mac}, STATUS={status}"
+        last_log = get_last_log_for_interface(device_id, name)
+        if last_log != log_output:
+            add_log(device_id, f"Sync {name}", log_output)
 
     print("✅ Sincronización completada.")
 
