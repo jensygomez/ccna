@@ -1,85 +1,54 @@
-
 # modules/bastion_router/sync_bastion_db.py
 from .connect_bastion import connect_to_bastion
-from modules.database_manager.db_utils import init_db, add_device, add_interface, update_interface_mac, add_log
+from modules.database_manager.db_utils import (
+    init_db, add_or_update_device, add_or_update_interface, add_log
+)
+
 import sqlite3
-import re
+import os
 
+DB_PATH = os.path.join("modules", "database", "net_devices.db")
 
-DB_PATH = "modules/database/net_devices.db"
+def sync_bastion():
+    print("🔹 Sincronizando Bastion con DB...")
 
-def parse_interfaces(output):
-    """
-    Recibe la salida de 'show ip interface brief' o 'show interface'
-    y devuelve una lista de diccionarios con: name, ip, mac, status, protocol
-    """
-    interfaces = []
-    lines = output.splitlines()
-    for line in lines:
-        # Evitamos líneas vacías o encabezados
-        if re.match(r'^\s*(Interface|---)', line) or line.strip() == "":
-            continue
-
-        # Ejemplo: GigabitEthernet0/0         192.168.18.110  YES manual up                    up
-        parts = line.split()
-        if len(parts) >= 6:
-            name = parts[0]
-            ip = parts[1]
-            status = parts[-2]
-            protocol = parts[-1]
-            # Inicializamos MAC como N/A, luego podemos intentar obtenerla con show interface
-            interfaces.append({"name": name, "ip": ip, "mac": "N/A", "status": status, "protocol": protocol})
-    return interfaces
-
-def sync_interfaces():
-    print("🔹 Connecting to Bastion to sync interfaces...")
-    output = connect_to_bastion()
-    if not output:
-        print("❌ Could not retrieve interfaces from Bastion.")
-        return
-
-    interfaces = parse_interfaces(output)
-
-    # Inicializamos DB
+    # Inicializamos la DB
     init_db()
 
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    # Aseguramos que Bastion esté en la tabla devices
+    device_id = add_or_update_device(
+        name="Bastion",
+        type_="Router",
+        ip="192.168.18.110",
+        mac="N/A",
+        model="ISR4331",
+        location="Home Lab"
+    )
 
-    # Verificamos que el dispositivo Bastion esté en la DB
-    cursor.execute("SELECT id FROM devices WHERE ip=?", ("192.168.18.110",))
-    row = cursor.fetchone()
-    if row:
-        device_id = row[0]
-    else:
-        device_id = add_device(
-            name="Bastion",
-            type_="Router",
-            ip="192.168.18.110",
-            mac="N/A",
-            model="ISR4331",
-            location="Home Lab"
+    # Obtenemos interfaces del Bastion
+    interfaces = connect_to_bastion()
+    if not interfaces:
+        print("❌ No se pudieron obtener interfaces.")
+        return
+
+    # Recorremos interfaces y actualizamos/insertamos en DB
+    for intf in interfaces:
+        name, ip, mac, status = intf["name"], intf["ip"], intf["mac"], intf["status"]
+
+        # Usamos la función moderna que ya maneja update o insert
+        add_or_update_interface(
+            device_id=device_id,
+            name=name,
+            mac=mac,
+            ip=ip,
+            status=status,
+            description=""
         )
 
-    # Iteramos interfaces y actualizamos DB
-    for iface in interfaces:
-        # Verificamos si la interfaz ya existe
-        cursor.execute("SELECT id, mac FROM interfaces WHERE device_id=? AND name=?", (device_id, iface["name"]))
-        row = cursor.fetchone()
-        if row:
-            iface_id, mac_db = row
-            if mac_db != iface["mac"] and iface["mac"] != "N/A":
-                update_interface_mac(iface_id, iface["mac"])
-                add_log(device_id, f"Updated MAC for {iface['name']}", f"{mac_db} -> {iface['mac']}")
-                print(f"⚡ Updated MAC for {iface['name']}: {mac_db} -> {iface['mac']}")
-        else:
-            add_interface(device_id, iface["name"], iface["mac"], iface["ip"], iface["status"])
-            add_log(device_id, f"Added interface {iface['name']}", str(iface))
-            print(f"➕ Added new interface {iface['name']}")
+        # Registramos log
+        add_log(device_id, f"Sync {name}", f"IP={ip}, MAC={mac}, STATUS={status}")
 
-    conn.commit()
-    conn.close()
-    print("✅ Bastion interfaces synchronized with database.")
+    print("✅ Sincronización completada.")
 
 if __name__ == "__main__":
-    sync_interfaces()
+    sync_bastion()
