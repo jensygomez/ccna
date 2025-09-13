@@ -1,16 +1,22 @@
-# Auto-generado db_utils.py
+# Netmiko/scripts/reset_db.py
 import sqlite3
-from datetime import datetime
 import os
+from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "net_devices.db")
+DB_PATH = os.path.join(os.path.dirname(__file__), "../modules/database/net_devices.db")
 
-def init_db():
+def reset_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    # Tabla devices
+
+    # Borrar tablas si existen
+    cursor.execute("DROP TABLE IF EXISTS lldp_neighbors")
+    cursor.execute("DROP TABLE IF EXISTS credentials")
+    cursor.execute("DROP TABLE IF EXISTS devices")
+
+    # Crear tabla devices
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS devices (
+    CREATE TABLE devices (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
         type TEXT,
@@ -21,18 +27,20 @@ def init_db():
         registered_at TIMESTAMP
     )
     """)
-    # Tabla credentials
+
+    # Crear tabla credentials
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS credentials (
+    CREATE TABLE credentials (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         device_id INTEGER,
         username TEXT,
         password TEXT
     )
     """)
-    # Tabla lldp_neighbors
+
+    # Crear tabla lldp_neighbors
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS lldp_neighbors (
+    CREATE TABLE lldp_neighbors (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         device_id INTEGER,
         local_interface TEXT,
@@ -44,6 +52,10 @@ def init_db():
         last_seen TIMESTAMP
     )
     """)
+
     conn.commit()
     conn.close()
-    print("✅ Base de datos creada con tablas iniciales.")
+    print("✅ Base de datos reiniciada y tablas creadas correctamente.")
+
+if __name__ == "__main__":
+    reset_db()
