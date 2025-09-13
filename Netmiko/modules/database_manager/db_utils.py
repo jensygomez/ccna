@@ -122,12 +122,14 @@ def add_or_update_lldp_neighbor(device_id, local_interface, neighbor_name, neigh
                                 neighbor_ip=None, neighbor_type=None, neighbor_model=None):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    # Verificar si ya existe un vecino idéntico
+
+    # Evitar duplicados exactos por device_id + local_interface + neighbor_name
     cursor.execute("""
         SELECT id FROM lldp_neighbors
         WHERE device_id=? AND local_interface=? AND neighbor_name=?
     """, (device_id, local_interface, neighbor_name))
     row = cursor.fetchone()
+
     if row:
         neighbor_id = row[0]
         cursor.execute("""
@@ -142,5 +144,6 @@ def add_or_update_lldp_neighbor(device_id, local_interface, neighbor_name, neigh
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (device_id, local_interface, neighbor_name, neighbor_port,
               neighbor_ip, neighbor_type, neighbor_model, datetime.now()))
+
     conn.commit()
     conn.close()
