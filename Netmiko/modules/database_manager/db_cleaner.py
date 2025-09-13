@@ -23,5 +23,12 @@ def clean_db():
     conn.close()
     print("✅ Base de datos completamente limpia. Los IDs se reiniciarán desde 1.")
 
-if __name__ == "__main__":
+# ------------------------------
+# Función main exportable
+# ------------------------------
+def main():
     clean_db()
+
+# Mantener ejecución directa
+if __name__ == "__main__":
+    main()

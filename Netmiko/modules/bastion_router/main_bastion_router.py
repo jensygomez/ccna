@@ -1,23 +1,39 @@
 # modules/bastion_router/main_bastion_router.py
+
+from .sync_bastion_db import sync_bastion
 from .connect_bastion import connect_to_bastion
-from modules.database_manager.db_utils import init_db, add_or_update_device, sync_device_interfaces
 
-def main():
-    init_db()
-
-    # 1️⃣ Conectar al Bastion y obtener interfaces
+def show_interfaces():
     interfaces = connect_to_bastion()
     if not interfaces:
-        print("❌ No se pudieron obtener interfaces")
+        print("❌ No se pudieron obtener interfaces.")
         return
 
-    # 2️⃣ Agregar o actualizar el dispositivo
-    device_id = add_or_update_device(
-        name="Bastion",
-        type_="Router",
-        ip="192.168.18.110"
-    )
+    print("\n=== Bastion Interfaces ===")
+    for intf in interfaces:
+        print(f"- {intf['name']}: IP={intf['ip']}, MAC={intf['mac']}, STATUS={intf['status']}")
 
-    # 3️⃣ Sincronizar interfaces
-    sync_device_interfaces(device_id, interfaces)
-    print("✅ Interfaces sincronizadas en la base de datos")
+def bastion_menu():
+    while True:
+        print("\n=== Bastion Management Menu ===")
+        print("1️⃣  Sync Bastion DB")
+        print("2️⃣  Show Interfaces")
+        print("0️⃣  Return to Main Menu")
+
+        choice = input("Select an option: ")
+
+        if choice == "1":
+            sync_bastion()
+        elif choice == "2":
+            show_interfaces()
+        elif choice == "0":
+            break
+        else:
+            print("Invalid choice. Try again.")
+
+# Función main exportable para el menú principal
+def main():
+    bastion_menu()
+
+if __name__ == "__main__":
+    main()

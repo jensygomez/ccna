@@ -7,7 +7,6 @@ from tabulate import tabulate
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "database", "net_devices.db")
 
-
 def view_devices():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -17,7 +16,6 @@ def view_devices():
 
     print("\n=== DEVICES ===")
     print(tabulate(rows, headers=["ID", "Name", "Type", "IP", "MAC", "Model", "Location", "Registered"], tablefmt="pretty"))
-
 
 def view_interfaces(device_id=None):
     conn = sqlite3.connect(DB_PATH)
@@ -32,7 +30,6 @@ def view_interfaces(device_id=None):
     print("\n=== INTERFACES ===")
     print(tabulate(rows, headers=["ID", "DeviceID", "Name", "MAC", "IP", "Status", "Description", "Updated"], tablefmt="pretty"))
 
-
 def view_logs(device_id=None):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -46,9 +43,15 @@ def view_logs(device_id=None):
     print("\n=== LOGS ===")
     print(tabulate(rows, headers=["ID", "DeviceID", "Command", "Output", "Executed"], tablefmt="pretty"))
 
-
-if __name__ == "__main__":
+# ------------------------------
+# Función main exportable
+# ------------------------------
+def main():
     print("📊 Network Inventory Viewer")
     view_devices()
     view_interfaces()
     view_logs()
+
+# Mantener ejecución directa
+if __name__ == "__main__":
+    main()
