@@ -13,49 +13,6 @@ DB_PATH = os.path.join(DB_FOLDER, "net_devices.db")
 
 
 # ------------------------------
-# Funciones CRUD para DB
-# ------------------------------
-def add_credentials(device_id, username, password):
-    """Agrega credenciales para un dispositivo"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO credentials (device_id, username, password)
-        VALUES (?, ?, ?)
-    """, (device_id, username, password))
-    conn.commit()
-    conn.close()
-
-
-def add_or_update_lldp(device_id, neighbor):
-    """Agrega o actualiza un vecino LLDP"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT id FROM lldp_neighbors 
-        WHERE device_id=? AND local_interface=? AND neighbor_name=?
-    """, (device_id, neighbor["local_intf"], neighbor["neighbor_name"]))
-    result = cursor.fetchone()
-
-    if result:
-        neighbor_id = result[0]
-        cursor.execute("""
-            UPDATE lldp_neighbors 
-            SET neighbor_port=?, neighbor_ip=?, neighbor_type=?, last_seen=CURRENT_TIMESTAMP
-            WHERE id=?
-        """, (neighbor["neighbor_port"], neighbor["neighbor_ip"], neighbor["neighbor_type"], neighbor_id))
-    else:
-        cursor.execute("""
-            INSERT INTO lldp_neighbors (device_id, local_interface, neighbor_name, neighbor_port, neighbor_ip, neighbor_type)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (device_id, neighbor["local_intf"], neighbor["neighbor_name"], neighbor["neighbor_port"], neighbor["neighbor_ip"], neighbor["neighbor_type"]))
-
-    conn.commit()
-    conn.close()
-
-
-# ------------------------------
 # Inicialización de la DB
 # ------------------------------
 def init_db():
@@ -86,6 +43,7 @@ def init_db():
         neighbor_port TEXT,
         neighbor_ip TEXT,
         neighbor_type TEXT,
+        neighbor_model TEXT,
         last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
     )
@@ -135,7 +93,7 @@ def init_db():
 
 
 # ------------------------------
-# Funciones CRUD y sync
+# Funciones CRUD
 # ------------------------------
 def add_or_update_device(name, type_, ip, mac=None, model=None, location=None):
     conn = sqlite3.connect(DB_PATH)
@@ -182,33 +140,38 @@ def add_or_update_interface(device_id, name, mac=None, ip=None, status=None, des
     conn.close()
 
 
-def add_interface(device_id, name, mac=None, ip=None, status=None, description=None):
-    """ Función de compatibilidad antigua """
-    add_or_update_interface(device_id, name, mac, ip, status, description)
-
-
-def add_device(name, type_, ip, mac=None, model=None, location=None):
-    """ Función de compatibilidad antigua """
-    return add_or_update_device(name, type_, ip, mac, model, location)
-
-
-def sync_device_interfaces(device_id, interfaces):
+def add_or_update_lldp(device_id, local_intf, neighbor_name, neighbor_port=None,
+                       neighbor_ip=None, neighbor_type=None, neighbor_model=None,
+                       timestamp=None):
     """
-    interfaces = [
-        {"name": "GigabitEthernet0/0", "mac": "aa:bb:cc:dd:ee:ff", "ip": "192.168.18.110",
-         "status": "up", "description": "To Home LAN"},
-        ...
-    ]
+    Agrega o actualiza un vecino LLDP con todos los campos.
     """
-    for intf in interfaces:
-        add_or_update_interface(
-            device_id,
-            name=intf.get("name"),
-            mac=intf.get("mac"),
-            ip=intf.get("ip"),
-            status=intf.get("status"),
-            description=intf.get("description")
-        )
+    timestamp = timestamp or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id FROM lldp_neighbors
+        WHERE device_id=? AND local_interface=? AND neighbor_name=?
+    """, (device_id, local_intf, neighbor_name))
+    result = cursor.fetchone()
+
+    if result:
+        neighbor_id = result[0]
+        cursor.execute("""
+            UPDATE lldp_neighbors
+            SET neighbor_port=?, neighbor_ip=?, neighbor_type=?, neighbor_model=?, last_seen=?
+            WHERE id=?
+        """, (neighbor_port, neighbor_ip, neighbor_type, neighbor_model, timestamp, neighbor_id))
+    else:
+        cursor.execute("""
+            INSERT INTO lldp_neighbors 
+            (device_id, local_interface, neighbor_name, neighbor_port, neighbor_ip, neighbor_type, neighbor_model, last_seen)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (device_id, local_intf, neighbor_name, neighbor_port, neighbor_ip, neighbor_type, neighbor_model, timestamp))
+
+    conn.commit()
+    conn.close()
 
 
 def add_log(device_id, command, output):
@@ -222,20 +185,7 @@ def add_log(device_id, command, output):
     conn.close()
 
 
-def get_devices():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, name, type, ip FROM devices")
-    devices = cursor.fetchall()
-    conn.close()
-    return devices
-
-
 def get_last_log_for_interface(device_id, interface_name):
-    """
-    Retorna el último Output registrado en logs para un dispositivo y una interfaz.
-    Si no hay logs previos, retorna None.
-    """
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
@@ -248,6 +198,49 @@ def get_last_log_for_interface(device_id, interface_name):
     row = cursor.fetchone()
     conn.close()
     return row[0] if row else None
+
+
+def add_credentials(device_id, username, password):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO credentials (device_id, username, password)
+        VALUES (?, ?, ?)
+    """, (device_id, username, password))
+    conn.commit()
+    conn.close()
+
+
+def get_devices():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name, type, ip FROM devices")
+    devices = cursor.fetchall()
+    conn.close()
+    return devices
+
+
+def sync_device_interfaces(device_id, interfaces):
+    for intf in interfaces:
+        add_or_update_interface(
+            device_id,
+            name=intf.get("name"),
+            mac=intf.get("mac"),
+            ip=intf.get("ip"),
+            status=intf.get("status"),
+            description=intf.get("description")
+        )
+
+
+# ------------------------------
+# Funciones de compatibilidad antigua
+# ------------------------------
+def add_interface(device_id, name, mac=None, ip=None, status=None, description=None):
+    add_or_update_interface(device_id, name, mac, ip, status, description)
+
+
+def add_device(name, type_, ip, mac=None, model=None, location=None):
+    return add_or_update_device(name, type_, ip, mac, model, location)
 
 
 # ------------------------------

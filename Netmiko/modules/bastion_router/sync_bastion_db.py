@@ -1,13 +1,10 @@
-# modules/bastion_router/sync_bastion_db.py
+# Netmiko/modules/bastion_router/sync_bastion_db.py
 from .connect_bastion import connect_to_bastion, get_lldp_neighbors
 from modules.database_manager.db_utils import (
-    init_db, add_or_update_device, add_or_update_interface, add_log, get_last_log_for_interface, add_or_update_lldp
+    init_db, add_or_update_device, add_or_update_interface,
+    add_log, get_last_log_for_interface, add_or_update_lldp
 )
-import os
 from netmiko import ConnectHandler
-
-DB_PATH = os.path.join("modules", "database", "net_devices.db")
-
 
 def sync_bastion():
     print("🔹 Sincronizando Bastion con DB...")
@@ -25,7 +22,7 @@ def sync_bastion():
         location="Home Lab"
     )
 
-    # Conectamos al Bastion y obtenemos interfaces
+    # Conectamos al Bastion
     try:
         bastion_conn = ConnectHandler(
             device_type="cisco_ios",
@@ -63,13 +60,12 @@ def sync_bastion():
         for nbr in neighbors:
             add_or_update_lldp(
                 device_id=device_id,
-                local_intf=nbr.get("local_intf"),
-                neighbor_name=nbr.get("neighbor_name"),
-                neighbor_port=nbr.get("neighbor_port"),
-                neighbor_ip=nbr.get("neighbor_ip"),
-                neighbor_type=nbr.get("neighbor_type"),
-                neighbor_model=nbr.get("neighbor_model"),
-                timestamp=nbr.get("timestamp")
+                local_intf=nbr.get("local_intf", "N/A"),
+                neighbor_name=nbr.get("neighbor_name", "N/A"),
+                neighbor_port=nbr.get("neighbor_port", "N/A"),
+                neighbor_ip=nbr.get("neighbor_ip"),  # puede ser None
+                neighbor_type=nbr.get("neighbor_type", "N/A"),
+                neighbor_model=nbr.get("neighbor_model", "N/A")
             )
         print(f"✅ LLDP neighbors synchronized ({len(neighbors)} found)")
 
@@ -81,15 +77,11 @@ def sync_bastion():
     print("✅ Sincronización completada.")
 
 
-# ------------------------------
 # Función main exportable para menú
-# ------------------------------
 def main():
     sync_bastion()
 
 
-# ------------------------------
 # Mantener ejecución directa
-# ------------------------------
 if __name__ == "__main__":
     main()

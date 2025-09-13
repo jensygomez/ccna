@@ -1,53 +1,6 @@
-# modules/bastion_router/connect_bastion.py
+# Netmiko/modules/bastion_router/connect_bastion.py
 from netmiko import ConnectHandler
 import re
-from datetime import datetime
-
-def get_lldp_neighbors(conn):
-    """
-    Devuelve una lista de vecinos LLDP con información detallada:
-    local_intf, neighbor_name, neighbor_port, neighbor_ip, neighbor_type, neighbor_model, timestamp
-    """
-    output = conn.send_command("show lldp neighbors detail")
-    neighbors = []
-
-    blocks = output.split("\n\n")  # separar cada vecino
-    for block in blocks:
-        neighbor = {}
-        # Device ID
-        match_name = re.search(r"Device ID: (\S+)", block)
-        if match_name:
-            neighbor["neighbor_name"] = match_name.group(1)
-        else:
-            continue
-
-        # Puerto local
-        match_local = re.search(r"Local Intf: (\S+ \S+)", block)
-        neighbor["local_intf"] = match_local.group(1) if match_local else "N/A"
-
-        # Puerto remoto
-        match_remote = re.search(r"Port id: (\S+)", block)
-        neighbor["neighbor_port"] = match_remote.group(1) if match_remote else "N/A"
-
-        # Tipo / capacidades
-        match_type = re.search(r"System Capabilities: (.+)", block)
-        neighbor["neighbor_type"] = match_type.group(1) if match_type else "N/A"
-
-        # Modelo / descripción
-        match_model = re.search(r"System Description: (.+)", block, re.DOTALL)
-        neighbor["neighbor_model"] = match_model.group(1).strip() if match_model else "N/A"
-
-        # IP de gestión
-        match_ip = re.search(r"Management Address: (\S+)", block)
-        neighbor["neighbor_ip"] = match_ip.group(1) if match_ip else None
-
-        # Timestamp
-        neighbor["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        neighbors.append(neighbor)
-
-    return neighbors
-
 
 def connect_to_bastion():
     """
@@ -97,3 +50,49 @@ def connect_to_bastion():
     except Exception as e:
         print(f"❌ Error al conectar al Bastion: {e}")
         return None
+
+
+def get_lldp_neighbors(conn):
+    """
+    Devuelve una lista de vecinos LLDP con:
+    local_intf, neighbor_name, neighbor_port, neighbor_ip, neighbor_type, neighbor_model
+    """
+    output = conn.send_command("show lldp neighbors detail")
+    neighbors = []
+
+    blocks = output.split("\n\n")  # separar cada vecino
+    for block in blocks:
+        neighbor = {}
+
+        # Extraer Device ID (nombre del vecino)
+        match_name = re.search(r"Device ID: (\S+)", block)
+        if match_name:
+            neighbor["neighbor_name"] = match_name.group(1)
+        else:
+            # Si no hay Device ID, puede ser "System Name" en algunos IOSv
+            match_sysname = re.search(r"System Name: (\S+)", block)
+            neighbor["neighbor_name"] = match_sysname.group(1) if match_sysname else "N/A"
+
+        # Extraer puerto local
+        match_local = re.search(r"Local Intf: (\S+ \S+)", block)
+        neighbor["local_intf"] = match_local.group(1) if match_local else "N/A"
+
+        # Extraer puerto remoto
+        match_remote = re.search(r"Port id: (\S+)", block)
+        neighbor["neighbor_port"] = match_remote.group(1) if match_remote else "N/A"
+
+        # Tipo de dispositivo (System Capabilities)
+        match_type = re.search(r"System Capabilities: (.+)", block)
+        neighbor["neighbor_type"] = match_type.group(1) if match_type else "N/A"
+
+        # Modelo del dispositivo
+        match_model = re.search(r"System Name: (\S+)", block)
+        neighbor["neighbor_model"] = match_model.group(1) if match_model else "N/A"
+
+        # IP de gestión si está publicado en LLDP
+        match_ip = re.search(r"Management Address: (?:IP: )?(\S+)", block)
+        neighbor["neighbor_ip"] = match_ip.group(1) if match_ip else None
+
+        neighbors.append(neighbor)
+
+    return neighbors
