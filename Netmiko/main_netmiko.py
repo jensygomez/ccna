@@ -1,12 +1,29 @@
 # Netmiko/main_netmiko.py
 from modules.bastion_router.connect_bastion import BastionManager
 from modules.database_manager import db_utils
+from datetime import datetime
+
+def mostrar_resumen_db():
+    devices = db_utils.get_devices()
+    if not devices:
+        print("📂 No hay dispositivos en la base de datos.\n")
+        return
+    
+    print("📊 Resumen de la base de datos:\n")
+    for d in devices:
+        print(f" - ID: {d[0]}, Name: {d[1]}, Type: {d[2]}, IP: {d[3]}, MAC: {d[4]}, Model: {d[5]}, Location: {d[6]}, Registered: {d[7]}")
+    print("")  # línea en blanco al final
 
 def main():
     print("🔹 Iniciando Network Manager...\n")
+    
+    # Inicializar DB
     db_utils.init_db()
 
-    # Obtener credenciales del Bastion desde la DB
+    # Mostrar estado actual de la DB
+    mostrar_resumen_db()
+
+    # Obtener credenciales del Bastion
     creds = db_utils.get_bastion_credentials()
     if not creds:
         print("⚠ No se encontraron credenciales del Bastion. Escaneando...")
@@ -14,23 +31,18 @@ def main():
         creds = db_utils.get_bastion_credentials()
         print("✅ Bastion escaneado y guardado/actualizado en la base de datos.")
 
-    # Conectar al Bastion
+    # Conectarse al Bastion
     bastion = BastionManager(
         host=creds["host"],
         username=creds["username"],
         password=creds["password"],
         secret=creds["secret"]
     )
+    bastion.connect()
 
-    if not bastion.connect():
-        print("❌ No se pudo conectar al Bastion. Terminando.")
-        return
-
-    # Obtener LLDP neighbors
+    # Obtener vecinos LLDP
     neighbors = bastion.get_lldp_neighbors()
     device_id = creds["device_id"]
-
-    # Guardar/actualizar vecinos en la DB
     for n in neighbors:
         db_utils.add_or_update_lldp_neighbor(
             device_id=device_id,
@@ -43,7 +55,10 @@ def main():
         )
 
     bastion.disconnect()
-    print("✅ Escaneo LLDP completado y sincronizado con la base de datos.")
+    print("✅ Escaneo LLDP completado y sincronizado con la base de datos.\n")
+
+    # Mostrar resumen final después del escaneo
+    mostrar_resumen_db()
 
 if __name__ == "__main__":
     main()
