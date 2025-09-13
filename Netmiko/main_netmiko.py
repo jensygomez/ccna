@@ -1,43 +1,29 @@
-# main_netmiko.py
 
-# ------------------------------
-# Imports de todos los módulos
-# ------------------------------
-from modules.bastion_router import main_bastion_router
-from modules.telnet_manager import main_telnet_manager
-from modules.database_manager import main_database_manager
-import scripts.check_project as check_project
+#Netmiko/main_netmiko.py
 
-# ------------------------------
-# Menú principal
-# ------------------------------
-def main_menu():
-    while True:
-        print("\n=== Netmiko Project Menu ===")
-        print("1️⃣  Bastion Management")
-        print("2️⃣  Run Telnet Manager")
-        print("3️⃣  Check Project")
-        print("4️⃣  Verify Database")
-        print("0️⃣  Exit")
-        
-        choice = input("Select an option: ")
-        
-        if choice == "1":
-            main_bastion_router.main()  # abre el menú del Bastion
-        elif choice == "2":
-            main_telnet_manager.main()  # Telnet Manager
-        elif choice == "3":
-            check_project.main()        # Check Project
-        elif choice == "4":
-            main_database_manager.main()  # Database Manager sub-menú
-        elif choice == "0":
-            print("Exiting...")
-            break
-        else:
-            print("Invalid choice. Try again.")
+from modules.scanner.network_scanner import scan_network
+from modules.database_manager import db_utils
 
-# ------------------------------
-# Ejecutar main al correr el archivo
-# ------------------------------
+def main():
+    print("🔹 Iniciando Network Manager...\n")
+
+    # Escaneo de red
+    devices = scan_network("192.168.0.0/24")
+
+    print("\n📂 Comparando con la base de datos...")
+    for dev in devices:
+        db_utils.insert_or_update_device(
+            name=f"Device-{dev['ip']}",  # nombre temporal
+            ip=dev['ip'],
+            mac=dev['mac'],
+            device_type="Unknown"        # luego lo refinamos con modelo/CDP/LLDP
+        )
+
+    # Mostrar resumen actualizado
+    print("\n📊 Resumen en DB:")
+    all_devices = db_utils.get_all_devices()
+    for d in all_devices:
+        print(f" - ID: {d[0]}, Name: {d[1]}, IP: {d[2]}, MAC: {d[3]}, Type: {d[4]}")
+
 if __name__ == "__main__":
-    main_menu()
+    main()
