@@ -12,6 +12,19 @@ os.makedirs(DB_FOLDER, exist_ok=True)
 DB_PATH = os.path.join(DB_FOLDER, "net_devices.db")
 
 
+def add_credentials(device_id, username, password):
+    """Agrega credenciales para un dispositivo"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO credentials (device_id, username, password)
+        VALUES (?, ?, ?)
+    """, (device_id, username, password))
+    conn.commit()
+    conn.close()
+
+
+
 # ------------------------------
 # Inicialización de la DB
 # ------------------------------

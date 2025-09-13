@@ -1,3 +1,5 @@
+# scripts/check_project.py
+
 import os
 import sys
 import sqlite3
@@ -87,8 +89,14 @@ def test_database():
     conn.close()
 
 # ------------------------------
-# Main
+# Función main exportable
 # ------------------------------
-if __name__ == "__main__":
+def main():
     check_structure()
     test_database()
+
+# ------------------------------
+# Mantener ejecución directa
+# ------------------------------
+if __name__ == "__main__":
+    main()

@@ -52,5 +52,14 @@ def sync_bastion():
 
     print("✅ Sincronización completada.")
 
-if __name__ == "__main__":
+# ------------------------------
+# Función main exportable para menú
+# ------------------------------
+def main():
     sync_bastion()
+
+# ------------------------------
+# Mantener ejecución directa
+# ------------------------------
+if __name__ == "__main__":
+    main()
