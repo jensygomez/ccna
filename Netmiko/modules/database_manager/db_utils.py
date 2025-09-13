@@ -24,6 +24,35 @@ def add_credentials(device_id, username, password):
     conn.close()
 
 
+def add_or_update_lldp(device_id, neighbor):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id FROM lldp_neighbors 
+        WHERE device_id=? AND local_interface=? AND neighbor_name=?""",
+        (device_id, neighbor["local_intf"], neighbor["neighbor_name"])
+    )
+    result = cursor.fetchone()
+
+    if result:
+        neighbor_id = result[0]
+        cursor.execute("""
+            UPDATE lldp_neighbors SET neighbor_port=?, neighbor_ip=?, neighbor_type=?, last_seen=CURRENT_TIMESTAMP
+            WHERE id=?""",
+            (neighbor["neighbor_port"], neighbor["neighbor_ip"], neighbor["neighbor_type"], neighbor_id)
+        )
+    else:
+        cursor.execute("""
+            INSERT INTO lldp_neighbors (device_id, local_interface, neighbor_name, neighbor_port, neighbor_ip, neighbor_type)
+            VALUES (?, ?, ?, ?, ?, ?)""",
+            (device_id, neighbor["local_intf"], neighbor["neighbor_name"], neighbor["neighbor_port"], neighbor["neighbor_ip"], neighbor["neighbor_type"])
+        )
+
+    conn.commit()
+    conn.close()
+    
+
 
 # ------------------------------
 # Inicialización de la DB
@@ -45,6 +74,18 @@ def init_db():
         registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
+    
+    CREATE TABLE IF NOT EXISTS lldp_neighbors (
+    id INTEGER PRIMARY KEY,
+    device_id INTEGER,
+    local_interface TEXT,
+    neighbor_name TEXT,
+    neighbor_port TEXT,
+    neighbor_ip TEXT,
+    neighbor_type TEXT,
+    last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 
     # Tabla de interfaces
     cursor.execute("""
