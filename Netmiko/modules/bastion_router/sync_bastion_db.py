@@ -1,3 +1,4 @@
+# modules/bastion_router/sync_bastion_db.py
 from .connect_bastion import connect_to_bastion, get_lldp_neighbors
 from modules.database_manager.db_utils import (
     init_db, add_or_update_device, add_or_update_interface, add_log, get_last_log_for_interface, add_or_update_lldp
@@ -37,7 +38,7 @@ def sync_bastion():
         print("✅ Conectado al Bastion")
 
         # Interfaces
-        interfaces = connect_to_bastion()  # tu función actual
+        interfaces = connect_to_bastion()
         if interfaces:
             for intf in interfaces:
                 name, ip, mac, status = intf["name"], intf["ip"], intf["mac"], intf["status"]
@@ -60,7 +61,16 @@ def sync_bastion():
         # LLDP neighbors
         neighbors = get_lldp_neighbors(bastion_conn)
         for nbr in neighbors:
-            add_or_update_lldp(device_id, nbr)
+            add_or_update_lldp(
+                device_id=device_id,
+                local_intf=nbr.get("local_intf"),
+                neighbor_name=nbr.get("neighbor_name"),
+                neighbor_port=nbr.get("neighbor_port"),
+                neighbor_ip=nbr.get("neighbor_ip"),
+                neighbor_type=nbr.get("neighbor_type"),
+                neighbor_model=nbr.get("neighbor_model"),
+                timestamp=nbr.get("timestamp")
+            )
         print(f"✅ LLDP neighbors synchronized ({len(neighbors)} found)")
 
         bastion_conn.disconnect()

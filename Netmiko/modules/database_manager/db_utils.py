@@ -12,6 +12,9 @@ os.makedirs(DB_FOLDER, exist_ok=True)
 DB_PATH = os.path.join(DB_FOLDER, "net_devices.db")
 
 
+# ------------------------------
+# Funciones CRUD para DB
+# ------------------------------
 def add_credentials(device_id, username, password):
     """Agrega credenciales para un dispositivo"""
     conn = sqlite3.connect(DB_PATH)
@@ -25,33 +28,31 @@ def add_credentials(device_id, username, password):
 
 
 def add_or_update_lldp(device_id, neighbor):
+    """Agrega o actualiza un vecino LLDP"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     cursor.execute("""
         SELECT id FROM lldp_neighbors 
-        WHERE device_id=? AND local_interface=? AND neighbor_name=?""",
-        (device_id, neighbor["local_intf"], neighbor["neighbor_name"])
-    )
+        WHERE device_id=? AND local_interface=? AND neighbor_name=?
+    """, (device_id, neighbor["local_intf"], neighbor["neighbor_name"]))
     result = cursor.fetchone()
 
     if result:
         neighbor_id = result[0]
         cursor.execute("""
-            UPDATE lldp_neighbors SET neighbor_port=?, neighbor_ip=?, neighbor_type=?, last_seen=CURRENT_TIMESTAMP
-            WHERE id=?""",
-            (neighbor["neighbor_port"], neighbor["neighbor_ip"], neighbor["neighbor_type"], neighbor_id)
-        )
+            UPDATE lldp_neighbors 
+            SET neighbor_port=?, neighbor_ip=?, neighbor_type=?, last_seen=CURRENT_TIMESTAMP
+            WHERE id=?
+        """, (neighbor["neighbor_port"], neighbor["neighbor_ip"], neighbor["neighbor_type"], neighbor_id))
     else:
         cursor.execute("""
             INSERT INTO lldp_neighbors (device_id, local_interface, neighbor_name, neighbor_port, neighbor_ip, neighbor_type)
-            VALUES (?, ?, ?, ?, ?, ?)""",
-            (device_id, neighbor["local_intf"], neighbor["neighbor_name"], neighbor["neighbor_port"], neighbor["neighbor_ip"], neighbor["neighbor_type"])
-        )
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (device_id, neighbor["local_intf"], neighbor["neighbor_name"], neighbor["neighbor_port"], neighbor["neighbor_ip"], neighbor["neighbor_type"]))
 
     conn.commit()
     conn.close()
-    
 
 
 # ------------------------------
@@ -74,18 +75,21 @@ def init_db():
         registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
-    
-    CREATE TABLE IF NOT EXISTS lldp_neighbors (
-    id INTEGER PRIMARY KEY,
-    device_id INTEGER,
-    local_interface TEXT,
-    neighbor_name TEXT,
-    neighbor_port TEXT,
-    neighbor_ip TEXT,
-    neighbor_type TEXT,
-    last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
+    # Tabla LLDP neighbors
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS lldp_neighbors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        device_id INTEGER,
+        local_interface TEXT,
+        neighbor_name TEXT,
+        neighbor_port TEXT,
+        neighbor_ip TEXT,
+        neighbor_type TEXT,
+        last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
+    )
+    """)
 
     # Tabla de interfaces
     cursor.execute("""
@@ -225,6 +229,8 @@ def get_devices():
     devices = cursor.fetchall()
     conn.close()
     return devices
+
+
 def get_last_log_for_interface(device_id, interface_name):
     """
     Retorna el último Output registrado en logs para un dispositivo y una interfaz.
@@ -232,7 +238,6 @@ def get_last_log_for_interface(device_id, interface_name):
     """
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
     cursor.execute("""
         SELECT output 
         FROM logs 
@@ -240,13 +245,9 @@ def get_last_log_for_interface(device_id, interface_name):
         ORDER BY executed_at DESC
         LIMIT 1
     """, (device_id, f"Sync {interface_name}"))
-    
     row = cursor.fetchone()
     conn.close()
-    
-    if row:
-        return row[0]
-    return None
+    return row[0] if row else None
 
 
 # ------------------------------
