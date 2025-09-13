@@ -1,29 +1,49 @@
-
-#Netmiko/main_netmiko.py
-
-from modules.scanner.network_scanner import scan_network
+# Netmiko/main_netmiko.py
+from modules.bastion_router.connect_bastion import BastionManager
 from modules.database_manager import db_utils
 
 def main():
     print("🔹 Iniciando Network Manager...\n")
+    db_utils.init_db()
 
-    # Escaneo de red
-    devices = scan_network("192.168.0.0/24")
+    # Obtener credenciales del Bastion desde la DB
+    creds = db_utils.get_bastion_credentials()
+    if not creds:
+        print("⚠ No se encontraron credenciales del Bastion. Escaneando...")
+        device_id = db_utils.add_or_update_bastion("192.168.18.110", "bastion", "bastion")
+        creds = db_utils.get_bastion_credentials()
+        print("✅ Bastion escaneado y guardado/actualizado en la base de datos.")
 
-    print("\n📂 Comparando con la base de datos...")
-    for dev in devices:
-        db_utils.insert_or_update_device(
-            name=f"Device-{dev['ip']}",  # nombre temporal
-            ip=dev['ip'],
-            mac=dev['mac'],
-            device_type="Unknown"        # luego lo refinamos con modelo/CDP/LLDP
+    # Conectar al Bastion
+    bastion = BastionManager(
+        host=creds["host"],
+        username=creds["username"],
+        password=creds["password"],
+        secret=creds["secret"]
+    )
+
+    if not bastion.connect():
+        print("❌ No se pudo conectar al Bastion. Terminando.")
+        return
+
+    # Obtener LLDP neighbors
+    neighbors = bastion.get_lldp_neighbors()
+    device_id = creds["device_id"]
+
+    # Guardar/actualizar vecinos en la DB
+    for n in neighbors:
+        db_utils.add_or_update_lldp_neighbor(
+            device_id=device_id,
+            local_interface=n["local_intf"],
+            neighbor_name=n["neighbor_name"],
+            neighbor_port=n["neighbor_port"],
+            neighbor_ip=n.get("neighbor_ip"),
+            neighbor_type=n.get("neighbor_type"),
+            neighbor_model=n.get("neighbor_model")
         )
 
-    # Mostrar resumen actualizado
-    print("\n📊 Resumen en DB:")
-    all_devices = db_utils.get_all_devices()
-    for d in all_devices:
-        print(f" - ID: {d[0]}, Name: {d[1]}, IP: {d[2]}, MAC: {d[3]}, Type: {d[4]}")
+    bastion.disconnect()
+    print("✅ Escaneo LLDP completado y sincronizado con la base de datos.")
 
 if __name__ == "__main__":
     main()

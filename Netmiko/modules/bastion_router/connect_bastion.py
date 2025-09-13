@@ -1,98 +1,69 @@
-# Netmiko/modules/bastion_router/connect_bastion.py
+#Netmiko/modules/bastion_router/connect_bastion.py
 from netmiko import ConnectHandler
 import re
 
-def connect_to_bastion():
-    """
-    Conecta al Bastion y devuelve una lista de interfaces con:
-    name, ip, mac, status
-    """
-    bastion = {
-        "device_type": "cisco_ios",
-        "host": "192.168.18.110",
-        "username": "bastion",
-        "password": "bastion",
-        "secret": "bastion",
-    }
+class BastionManager:
+    def __init__(self, host, username, password, secret, device_type="cisco_ios"):
+        self.conn_info = {
+            "device_type": device_type,
+            "host": host,
+            "username": username,
+            "password": password,
+            "secret": secret,
+        }
+        self.conn = None
 
-    try:
-        conn = ConnectHandler(**bastion)
-        conn.enable()
-        print("✅ Conectado al Bastion")
+    def connect(self):
+        try:
+            self.conn = ConnectHandler(**self.conn_info)
+            self.conn.enable()
+            print(f"✅ Conectado al Bastion {self.conn_info['host']}")
+            return True
+        except Exception as e:
+            print(f"❌ Error conectando al Bastion: {e}")
+            self.conn = None
+            return False
 
-        # Obtenemos salidas
-        output_brief = conn.send_command("show ip interface brief")
-        output_int = conn.send_command("show interface")
+    def disconnect(self):
+        if self.conn:
+            self.conn.disconnect()
+            print("🔌 Desconectado del Bastion.")
 
-        interfaces = []
-        lines = output_brief.splitlines()[1:]  # saltamos encabezado
-        for line in lines:
-            parts = line.split()
-            if len(parts) >= 6:
-                name, ip_addr, _, _, status, proto = parts[:6]
+    def get_lldp_neighbors(self):
+        if not self.conn:
+            print("❌ No hay conexión al Bastion")
+            return []
 
-                # Buscamos la MAC real en "show interface"
-                mac_match = re.search(
-                    rf"{name}.*address is (\S+)", output_int, re.DOTALL
-                )
-                mac = mac_match.group(1) if mac_match else "N/A"
+        try:
+            output = self.conn.send_command("show lldp neighbors detail")
+            return self._parse_lldp_output(output)
+        except Exception as e:
+            print(f"❌ Error obteniendo LLDP neighbors: {e}")
+            return []
 
-                interfaces.append({
-                    "name": name,
-                    "ip": ip_addr if ip_addr != "unassigned" else None,
-                    "mac": mac,
-                    "status": f"{status}/{proto}"
-                })
+    def _parse_lldp_output(self, output):
+        neighbors = []
+        blocks = output.split("\n\n")
+        for block in blocks:
+            neighbor = {}
 
-        conn.disconnect()
-        return interfaces
+            match_name = re.search(r"Device ID: (\S+)", block) or re.search(r"System Name: (\S+)", block)
+            neighbor["neighbor_name"] = match_name.group(1) if match_name else "N/A"
 
-    except Exception as e:
-        print(f"❌ Error al conectar al Bastion: {e}")
-        return None
+            match_local = re.search(r"Local Intf: (\S+ \S+)", block)
+            neighbor["local_intf"] = match_local.group(1) if match_local else "N/A"
 
+            match_remote = re.search(r"Port id: (\S+)", block)
+            neighbor["neighbor_port"] = match_remote.group(1) if match_remote else "N/A"
 
-def get_lldp_neighbors(conn):
-    """
-    Devuelve una lista de vecinos LLDP con:
-    local_intf, neighbor_name, neighbor_port, neighbor_ip, neighbor_type, neighbor_model
-    """
-    output = conn.send_command("show lldp neighbors detail")
-    neighbors = []
+            match_type = re.search(r"System Capabilities: (.+)", block)
+            neighbor["neighbor_type"] = match_type.group(1) if match_type else "N/A"
 
-    blocks = output.split("\n\n")  # separar cada vecino
-    for block in blocks:
-        neighbor = {}
+            match_model = re.search(r"System Description: (.+)", block)
+            neighbor["neighbor_model"] = match_model.group(1) if match_model else "N/A"
 
-        # Extraer Device ID (nombre del vecino)
-        match_name = re.search(r"Device ID: (\S+)", block)
-        if match_name:
-            neighbor["neighbor_name"] = match_name.group(1)
-        else:
-            # Si no hay Device ID, puede ser "System Name" en algunos IOSv
-            match_sysname = re.search(r"System Name: (\S+)", block)
-            neighbor["neighbor_name"] = match_sysname.group(1) if match_sysname else "N/A"
+            match_ip = re.search(r"Management Address: (?:IP: )?(\S+)", block)
+            neighbor["neighbor_ip"] = match_ip.group(1) if match_ip else None
 
-        # Extraer puerto local
-        match_local = re.search(r"Local Intf: (\S+ \S+)", block)
-        neighbor["local_intf"] = match_local.group(1) if match_local else "N/A"
-
-        # Extraer puerto remoto
-        match_remote = re.search(r"Port id: (\S+)", block)
-        neighbor["neighbor_port"] = match_remote.group(1) if match_remote else "N/A"
-
-        # Tipo de dispositivo (System Capabilities)
-        match_type = re.search(r"System Capabilities: (.+)", block)
-        neighbor["neighbor_type"] = match_type.group(1) if match_type else "N/A"
-
-        # Modelo del dispositivo
-        match_model = re.search(r"System Name: (\S+)", block)
-        neighbor["neighbor_model"] = match_model.group(1) if match_model else "N/A"
-
-        # IP de gestión si está publicado en LLDP
-        match_ip = re.search(r"Management Address: (?:IP: )?(\S+)", block)
-        neighbor["neighbor_ip"] = match_ip.group(1) if match_ip else None
-
-        neighbors.append(neighbor)
-
-    return neighbors
+            neighbors.append(neighbor)
+        return neighbors
