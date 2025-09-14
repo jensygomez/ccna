@@ -15,8 +15,8 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
         type TEXT,
-        ip TEXT,
-        mac TEXT,
+        ip TEXT UNIQUE,
+        mac TEXT UNIQUE,
         model TEXT,
         location TEXT,
         registered_at TIMESTAMP
@@ -27,19 +27,13 @@ def init_db():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS credentials (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        device_id INTEGER,
+        device_id INTEGER UNIQUE,
         username TEXT,
         password TEXT,
-        secret TEXT
+        secret TEXT,
+        FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE
     )
     """)
-    
-    # Check if secret column exists, if not add it
-    cursor.execute("PRAGMA table_info(credentials)")
-    columns = [column[1] for column in cursor.fetchall()]
-    if 'secret' not in columns:
-        print("⚠ Adding missing 'secret' column to credentials table")
-        cursor.execute("ALTER TABLE credentials ADD COLUMN secret TEXT")
     
     # Crear tabla lldp_neighbors
     cursor.execute("""
@@ -52,7 +46,8 @@ def init_db():
         neighbor_ip TEXT,
         neighbor_type TEXT,
         neighbor_model TEXT,
-        last_seen TIMESTAMP
+        last_seen TIMESTAMP,
+        FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE
     )
     """)
     
@@ -79,98 +74,146 @@ def get_bastion_credentials():
 def add_or_update_bastion(host, username, password, secret, name="Bastion"):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    # Verificar si ya existe
-    cursor.execute("SELECT id FROM devices WHERE name=?", (name,))
-    row = cursor.fetchone()
-    if row:
-        device_id = row[0]
-        # Actualizar IP si cambió
-        cursor.execute("UPDATE devices SET ip=?, registered_at=? WHERE id=?", 
-                       (host, datetime.now(), device_id))
-        cursor.execute("UPDATE credentials SET username=?, password=?, secret=? WHERE device_id=?",
-                       (username, password, secret, device_id))
-    else:
-        cursor.execute("INSERT INTO devices (name, ip, registered_at) VALUES (?, ?, ?)",
-                       (name, host, datetime.now()))
-        device_id = cursor.lastrowid
-        cursor.execute("INSERT INTO credentials (device_id, username, password, secret) VALUES (?, ?, ?, ?)",
-                       (device_id, username, password, secret))
-    conn.commit()
+    
+    try:
+        # Verificar si ya existe
+        cursor.execute("SELECT id FROM devices WHERE name=?", (name,))
+        row = cursor.fetchone()
+        
+        if row:
+            device_id = row[0]
+            # Actualizar
+            cursor.execute("UPDATE devices SET ip=?, registered_at=? WHERE id=?", 
+                           (host, datetime.now(), device_id))
+            cursor.execute("UPDATE credentials SET username=?, password=?, secret=? WHERE device_id=?",
+                           (username, password, secret, device_id))
+        else:
+            cursor.execute("INSERT INTO devices (name, ip, registered_at) VALUES (?, ?, ?)",
+                           (name, host, datetime.now()))
+            device_id = cursor.lastrowid
+            cursor.execute("INSERT INTO credentials (device_id, username, password, secret) VALUES (?, ?, ?, ?)",
+                           (device_id, username, password, secret))
+        
+        conn.commit()
+        return device_id
+        
+    except sqlite3.IntegrityError as e:
+        print(f"❌ Error de integridad: {e}")
+        conn.rollback()
+        return None
+    finally:
+        conn.close()
+
+# --------- Devices ---------
+def find_device_by_identifiers(name=None, ip=None, mac=None):
+    """
+    Busca un dispositivo usando múltiples identificadores
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    device_id = None
+    
+    # 1. Buscar por IP (más confiable)
+    if ip:
+        cursor.execute("SELECT id FROM devices WHERE ip=?", (ip,))
+        row = cursor.fetchone()
+        if row:
+            device_id = row[0]
+            print(f"    ✅ Encontrado por IP: {ip} -> ID: {device_id}")
+    
+    # 2. Buscar por MAC (muy confiable)
+    if not device_id and mac:
+        cursor.execute("SELECT id FROM devices WHERE mac=?", (mac,))
+        row = cursor.fetchone()
+        if row:
+            device_id = row[0]
+            print(f"    ✅ Encontrado por MAC: {mac} -> ID: {device_id}")
+    
+    # 3. Buscar por nombre (solo si no es genérico)
+    if not device_id and name and name != "N/A" and not name.startswith(("Device-", "Unknown-")):
+        cursor.execute("SELECT id FROM devices WHERE name=?", (name,))
+        row = cursor.fetchone()
+        if row:
+            device_id = row[0]
+            print(f"    ✅ Encontrado por nombre: {name} -> ID: {device_id}")
+    
     conn.close()
     return device_id
 
-# --------- Devices ---------
 def add_or_update_device(name, type_, ip=None, mac=None, model=None, location=None):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    # Mejorar la búsqueda para evitar duplicados
-    query = "SELECT id FROM devices WHERE "
-    params = []
-    
-    conditions = []
-    if ip:
-        conditions.append("ip=?")
-        params.append(ip)
-    if mac:
-        conditions.append("mac=?")
-        params.append(mac)
-    if name and name != "N/A":
-        conditions.append("name=?")
-        params.append(name)
-    
-    if conditions:
-        query += " OR ".join(conditions)
-        cursor.execute(query, params)
-    else:
-        # Si no hay criterios de búsqueda, buscar por modelo y tipo
-        cursor.execute("SELECT id FROM devices WHERE model=? AND type=?", (model, type_))
-    
-    row = cursor.fetchone()
-    
-    if row:
-        device_id = row[0]
-        cursor.execute("""
-            UPDATE devices SET name=?, type=?, ip=?, mac=?, model=?, location=?, registered_at=?
-            WHERE id=?
-        """, (name, type_, ip, mac, model, location, datetime.now(), device_id))
-    else:
-        cursor.execute("""
-            INSERT INTO devices (name, type, ip, mac, model, location, registered_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (name, type_, ip, mac, model, location, datetime.now()))
-        device_id = cursor.lastrowid
-    
-    conn.commit()
-    conn.close()
-    return device_id
+    try:
+        # Buscar dispositivo existente
+        device_id = find_device_by_identifiers(name, ip, mac)
+        
+        if device_id:
+            # Actualizar dispositivo existente
+            update_fields = []
+            update_values = []
+            
+            if name and name != "N/A": 
+                update_fields.append("name=?")
+                update_values.append(name)
+            if type_: 
+                update_fields.append("type=?")
+                update_values.append(type_)
+            if ip: 
+                update_fields.append("ip=?")
+                update_values.append(ip)
+            if mac: 
+                update_fields.append("mac=?")
+                update_values.append(mac)
+            if model: 
+                update_fields.append("model=?")
+                update_values.append(model)
+            if location: 
+                update_fields.append("location=?")
+                update_values.append(location)
+            
+            update_fields.append("registered_at=?")
+            update_values.append(datetime.now())
+            update_values.append(device_id)
+            
+            if update_fields:
+                cursor.execute(f"UPDATE devices SET {', '.join(update_fields)} WHERE id=?", update_values)
+        else:
+            # Insertar nuevo dispositivo
+            cursor.execute("""
+                INSERT INTO devices (name, type, ip, mac, model, location, registered_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (name, type_, ip, mac, model, location, datetime.now()))
+            device_id = cursor.lastrowid
+        
+        conn.commit()
+        return device_id
+        
+    except sqlite3.IntegrityError as e:
+        print(f"❌ Error de integridad: {e}")
+        # Intentar recuperar el ID existente
+        if ip:
+            cursor.execute("SELECT id FROM devices WHERE ip=?", (ip,))
+            row = cursor.fetchone()
+            if row:
+                return row[0]
+        conn.rollback()
+        return None
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        conn.rollback()
+        return None
+    finally:
+        conn.close()
 
 def get_devices():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM devices")
+    cursor.execute("SELECT * FROM devices ORDER BY id")
     rows = cursor.fetchall()
     conn.close()
     return rows
-
-# Función para limpiar duplicados (opcional)
-def clean_duplicate_devices():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    
-    # Eliminar dispositivos duplicados (mantener el más reciente)
-    cursor.execute("""
-        DELETE FROM devices 
-        WHERE id NOT IN (
-            SELECT MIN(id) 
-            FROM devices 
-            GROUP BY COALESCE(NULLIF(ip, ''), NULLIF(mac, ''), NULLIF(name, 'N/A'))
-        )
-    """)
-    
-    conn.commit()
-    conn.close()
-    print("✅ Dispositivos duplicados eliminados")
 
 # --------- LLDP Neighbors ---------
 def add_or_update_lldp_neighbor(device_id, local_interface, neighbor_name, neighbor_port,
@@ -178,27 +221,35 @@ def add_or_update_lldp_neighbor(device_id, local_interface, neighbor_name, neigh
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # Evitar duplicados exactos por device_id + local_interface + neighbor_name
-    cursor.execute("""
-        SELECT id FROM lldp_neighbors
-        WHERE device_id=? AND local_interface=? AND neighbor_name=?
-    """, (device_id, local_interface, neighbor_name))
-    row = cursor.fetchone()
-
-    if row:
-        neighbor_id = row[0]
+    try:
+        # Primero verificar si ya existe
         cursor.execute("""
-            UPDATE lldp_neighbors
-            SET neighbor_port=?, neighbor_ip=?, neighbor_type=?, neighbor_model=?, last_seen=?
-            WHERE id=?
-        """, (neighbor_port, neighbor_ip, neighbor_type, neighbor_model, datetime.now(), neighbor_id))
-    else:
-        cursor.execute("""
-            INSERT INTO lldp_neighbors (device_id, local_interface, neighbor_name, neighbor_port,
-                                        neighbor_ip, neighbor_type, neighbor_model, last_seen)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (device_id, local_interface, neighbor_name, neighbor_port,
-              neighbor_ip, neighbor_type, neighbor_model, datetime.now()))
+            SELECT id FROM lldp_neighbors 
+            WHERE device_id=? AND local_interface=? AND neighbor_name=?
+        """, (device_id, local_interface, neighbor_name))
+        
+        row = cursor.fetchone()
+        
+        if row:
+            # Actualizar existente
+            cursor.execute("""
+                UPDATE lldp_neighbors 
+                SET neighbor_port=?, neighbor_ip=?, neighbor_type=?, neighbor_model=?, last_seen=?
+                WHERE id=?
+            """, (neighbor_port, neighbor_ip, neighbor_type, neighbor_model, datetime.now(), row[0]))
+        else:
+            # Insertar nuevo
+            cursor.execute("""
+                INSERT INTO lldp_neighbors 
+                (device_id, local_interface, neighbor_name, neighbor_port, neighbor_ip, neighbor_type, neighbor_model, last_seen)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (device_id, local_interface, neighbor_name, neighbor_port,
+                  neighbor_ip, neighbor_type, neighbor_model, datetime.now()))
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        
+    except Exception as e:
+        print(f"❌ Error al agregar vecino LLDP: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
