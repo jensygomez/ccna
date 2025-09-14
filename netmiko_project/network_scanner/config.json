@@ -1,8 +1,9 @@
 {
-  "targets": ["192.168.0.0/24"],
-  "ports": [22,23,80],
-  "workers": 150,
-  "timeout": 0.8,
-  "retries": 1,
-  "output": "scan_results_bastion.json"
+  "targets": ["192.168.0.1", "192.168.0.2", "192.168.0.3"],
+  "credentials": [
+    {"user": "bastion", "password": "basstion"},
+    {"user": "bastion", "password": "bastion"}
+  ],
+  "workers": 20,
+  "output": "inventory_results.json"
 }

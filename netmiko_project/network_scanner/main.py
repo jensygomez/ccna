@@ -11,6 +11,18 @@ import sys
 from pathlib import Path
 
 from core import run_scan_from_config
+# main_netmiko.py
+from network_scanner import core
+
+devices = [
+    {"ip": "192.168.18.110", "user": "bastion", "password": "bastion", "name": "bastion"},
+    {"ip": "192.168.0.1", "user": "Sw-Core-111", "password": "Sw-Core-111", "name": "Sw-Core-111"},
+    {"ip": "192.168.0.2", "user": "Sw_02", "password": "Sw_02", "name": "Sw_02"}
+]
+
+core.run_inventory(devices, output_file="inventory_results.json")
+
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Network scanner minimal y modular")
