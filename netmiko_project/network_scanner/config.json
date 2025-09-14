@@ -1,9 +1,0 @@
-{
-  "targets": ["192.168.0.1", "192.168.0.2", "192.168.0.3"],
-  "credentials": [
-    {"user": "bastion", "password": "basstion"},
-    {"user": "bastion", "password": "bastion"}
-  ],
-  "workers": 20,
-  "output": "inventory_results.json"
-}
