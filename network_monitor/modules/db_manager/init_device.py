@@ -1,4 +1,8 @@
 # network_monitor/modules/db_manager/init_device.py
+
+
+# network_monitor/modules/db_manager/init_device.py
+
 from modules.db_manager.database import save_device_and_credentials, save_interfaces, init_db
 import ipaddress
 
@@ -15,11 +19,19 @@ def add_new_device():
     init_db()  # Asegurarse de que la DB exista
 
     # --- Tipo de dispositivo ---
+    device_type = None
     while True:
-        device_type = input("Tipo de dispositivo (router/switch): ").strip().lower()
-        if device_type in ["router", "switch"]:
+        print("\nSeleccione el tipo de dispositivo:")
+        print("1. Router")
+        print("2. Switch")
+        choice = input("Ingrese opción (1 o 2): ").strip()
+        if choice == "1":
+            device_type = "router"
             break
-        print("Debe ingresar 'router' o 'switch'.")
+        elif choice == "2":
+            device_type = "switch"
+            break
+        print("Opción inválida, ingrese 1 o 2.")
 
     # --- Hostname ---
     hostname = input("Hostname del dispositivo: ").strip()
@@ -81,6 +93,3 @@ def add_new_device():
     save_device_and_credentials(ip, hostname, None, username, password)
     save_interfaces(ip, [{"name": interface, "ip": ip, "status": "up", "protocol": "up"}])
     print("\n✅ Dispositivo guardado en la base de datos con éxito.")
-
-# Ejemplo de uso:
-# add_new_device()

@@ -205,3 +205,31 @@ def show_database():
         print(row)
 
     conn.close()
+
+
+# -----------------------------
+# Funciones auxiliares
+# -----------------------------
+def get_connection():
+    """Devuelve una conexión abierta a la DB"""
+    return sqlite3.connect(DB_PATH)
+
+
+def get_all_devices():
+    """Devuelve todos los dispositivos registrados en la DB"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, hostname, ip, mac FROM devices")
+    devices = cursor.fetchall()
+    conn.close()
+    return devices
+
+
+def delete_all_data():
+    """Elimina todos los registros de todas las tablas"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    for table in ["credentials", "interfaces", "device_logs", "devices"]:
+        cursor.execute(f"DELETE FROM {table}")
+    conn.commit()
+    conn.close()
