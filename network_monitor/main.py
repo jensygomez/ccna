@@ -1,6 +1,5 @@
 # network_monitor/main.py
 
-
 # network_monitor/main.py
 
 from modules.db_manager.init_device import add_new_device
@@ -12,6 +11,7 @@ from modules.ssh_manager.ssh_handler import connect_and_run
 from modules.parsers.interfaces import parse_interfaces
 from modules.ssh_manager.interactive_cli import interactive_cli
 from modules.db_manager.reset_db import reset_database
+from modules.ssh_manager.ssh_native import ssh_native_session  # 👈 nuevo
 
 
 def configure_device(selected_device):
@@ -77,14 +77,23 @@ def main_menu():
             while True:
                 print(f"\nDispositivo seleccionado: {selected_device[1]} | IP: {selected_device[2]}")
                 print("1. Actualizar información del dispositivo")
-                print("2. Abrir sesión interactiva (CLI)")
+                print("2. Abrir sesión interactiva (CLI con Netmiko)")
+                print("3. Abrir sesión SSH nativa (con autocompletado/tab)")
                 print("0. Regresar al menú principal")
-                sub_choice = input("Seleccione opción (0, 1 o 2): ").strip()
+                sub_choice = input("Seleccione opción (0-3): ").strip()
 
                 if sub_choice == "1":
                     configure_device(selected_device)
                 elif sub_choice == "2":
                     interactive_cli(selected_device)
+                elif sub_choice == "3":
+                    ip = selected_device[2]
+                    creds = get_credentials(ip)
+                    if creds:
+                        username, password = creds
+                        ssh_native_session(ip, username, password, selected_device[1])
+                    else:
+                        print("❌ No se encontraron credenciales para este dispositivo.")
                 elif sub_choice == "0":
                     break
                 else:
