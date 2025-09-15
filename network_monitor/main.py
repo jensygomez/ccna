@@ -38,7 +38,8 @@ def configure_device(selected_device):
         save_interfaces(ip, interfaces)
 
         # Mostrar resumen
-        show_device_summary(ip)
+        show_device_summary_with_ip(ip)
+
 
     except Exception as e:
         print(f"❌ Error al conectar con {ip}: {e}")

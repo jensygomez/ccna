@@ -179,6 +179,42 @@ def show_device_summary(ip):
     conn.close()
 
 
+def show_device_summary_with_ip(ip):
+    """Muestra un resumen del dispositivo y solo las interfaces que tienen IP"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # Información del dispositivo
+    cursor.execute("SELECT hostname, ip, mac FROM devices WHERE ip=?", (ip,))
+    dev = cursor.fetchone()
+    if dev:
+        hostname, ip_addr, mac = dev
+        print(f"\n📌 Dispositivo: {hostname} | IP: {ip_addr} | MAC: {mac}\n")
+    else:
+        print("Dispositivo no encontrado en la DB.")
+        conn.close()
+        return
+
+    # Solo interfaces con IP asignada
+    cursor.execute("""
+        SELECT name, ip_address, status, protocol
+        FROM interfaces
+        WHERE device_id=(SELECT id FROM devices WHERE ip=?)
+        AND ip_address IS NOT NULL AND ip_address != ''
+    """, (ip,))
+    rows = cursor.fetchall()
+    if not rows:
+        print(f"No hay interfaces con IP configurada para {hostname}\n")
+    else:
+        for intf_name, ip_intf, status, proto in rows:
+            print(f"💻 {hostname} con IP {ip_intf} está conectado en la interfaz {intf_name} ({status}/{proto})")
+
+    conn.close()
+
+
+
+
+
 def show_database():
     """Muestra en pantalla el contenido de todas las tablas."""
     conn = sqlite3.connect(DB_PATH)
