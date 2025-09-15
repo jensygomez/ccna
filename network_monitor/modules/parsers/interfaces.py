@@ -1,6 +1,8 @@
 # network_monitor/modules/parsers/interfaces.py
 import re
 
+from modules.db_manager.database import save_interfaces, show_device_summary
+
 def parse_interfaces(output):
     """
     Extrae de 'show ip interface brief' la info:

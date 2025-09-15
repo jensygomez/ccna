@@ -1,60 +1,34 @@
 # network_monitor/main.py
 
+def main_menu():
+    """Menú principal para seleccionar acción"""
+    while True:
+        devices = get_all_devices()
+        print("\n📋 Network Monitor - Menú Principal")
+        if not devices:
+            print("No hay dispositivos registrados. Debes agregar uno primero.")
+            add_new_device()
+            continue
 
-from modules.db_manager.database import (
-    init_db, save_device_log, save_device_and_credentials,
-    save_interfaces, show_device_summary
-)
-from modules.credentials_manager.creds import request_credentials
-from modules.ssh_manager.ssh_handler import connect_and_run
-from modules.parsers.interfaces import parse_interfaces
-from modules.parsers.device_info import parse_hostname, parse_mac
+        print("\nDispositivos existentes:")
+        for idx, dev in enumerate(devices, start=1):
+            print(f"{idx}. {dev[1]} | IP: {dev[2]}")  # dev = (id, hostname, ip, mac)
 
+        print(f"{len(devices)+1}. Agregar nuevo dispositivo")
+        print(f"{len(devices)+2}. Borrar base de datos (reset DB)")
+        print("0. Salir")
 
-def main():
-    print("🚀 Iniciando Network Monitor...\n")
-
-    # Inicializar DB
-    init_db()
-
-    # Solicitar IP
-    ip = input("Ingrese la IP del bastión: ").strip()
-
-    # Credenciales
-    username, password = request_credentials(ip)
-
-    try:
-        # show version
-        output = connect_and_run(ip, username, password, command="show version")
-        print("\n📄 Información del dispositivo (show version):\n")
-        print(output)
-
-        # Parsear hostname y MAC
-        hostname = parse_hostname(output)
-        mac = parse_mac(output)
-
-        # Guardar dispositivo + credenciales
-        save_device_and_credentials(ip, hostname, mac, username, password)
-
-        # Guardar log
-        save_device_log(ip, "show version", output)
-        print("💾 Log guardado en la base de datos.")
-
-        # show ip interface brief
-        interfaces_output = connect_and_run(ip, username, password, command="show ip interface brief")
-        interfaces = parse_interfaces(interfaces_output)
-
-        # Guardar interfaces
-        save_interfaces(ip, interfaces)
-
-        # Mostrar resumen
-        show_device_summary(ip)
-
-    except RuntimeError as err:
-        print(f"❌ {err}")
-    except Exception as ex:
-        print(f"❌ Error inesperado: {ex}")
-
-
-if __name__ == "__main__":
-    main()
+        choice = input("Seleccione una opción: ").strip()
+        if choice == "0":
+            print("👋 Saliendo...")
+            break
+        elif choice == str(len(devices)+1):
+            add_new_device()
+        elif choice == str(len(devices)+2):
+            from modules.db_manager.reset_db import reset_database
+            reset_database()
+        elif choice.isdigit() and 1 <= int(choice) <= len(devices):
+            selected_device = devices[int(choice)-1]
+            manage_device(selected_device)
+        else:
+            print("Opción inválida, intente nuevamente.")

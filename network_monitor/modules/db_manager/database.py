@@ -1,11 +1,13 @@
 # network_monitor/modules/db_manager/database.py
 # network_monitor/modules/db_manager/database.py
+
 # network_monitor/modules/db_manager/database.py
 import sqlite3
 import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "data", "devices.db")
+
 
 def init_db():
     """Inicializa la base de datos con todas las tablas necesarias."""
@@ -31,7 +33,8 @@ def init_db():
         ip_address TEXT,
         status TEXT,
         protocol TEXT,
-        FOREIGN KEY(device_id) REFERENCES devices(id)
+        FOREIGN KEY(device_id) REFERENCES devices(id),
+        UNIQUE(device_id, name)
     )
     """)
 
@@ -142,7 +145,7 @@ def save_interfaces(ip, interfaces):
         cursor.execute("""
         INSERT INTO interfaces (device_id, name, ip_address, status, protocol)
         VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(name) DO UPDATE SET
+        ON CONFLICT(device_id, name) DO UPDATE SET
             ip_address=excluded.ip_address,
             status=excluded.status,
             protocol=excluded.protocol
