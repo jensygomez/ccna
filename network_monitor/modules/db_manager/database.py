@@ -233,3 +233,16 @@ def delete_all_data():
         cursor.execute(f"DELETE FROM {table}")
     conn.commit()
     conn.close()
+
+
+from tabulate import tabulate
+
+def show_devices_table():
+    """Muestra los dispositivos registrados en forma de tabla."""
+    devices = get_all_devices()
+    if not devices:
+        print("No hay dispositivos registrados.")
+        return
+    
+    headers = ["ID", "Hostname", "IP", "MAC"]
+    print("\n" + tabulate(devices, headers=headers, tablefmt="fancy_grid") + "\n")

@@ -12,6 +12,7 @@ from modules.parsers.interfaces import parse_interfaces
 from modules.ssh_manager.interactive_cli import interactive_cli
 from modules.db_manager.reset_db import reset_database
 from modules.ssh_manager.ssh_native import ssh_native_session  # 👈 nuevo
+from tabulate import tabulate  # 👈 para mostrar tablas
 
 
 def configure_device(selected_device):
@@ -43,6 +44,16 @@ def configure_device(selected_device):
         print(f"❌ Error al conectar con {ip}: {e}")
 
 
+def show_devices_table(devices):
+    """Muestra los dispositivos registrados en forma de tabla"""
+    if not devices:
+        print("No hay dispositivos registrados.\n")
+        return
+
+    headers = ["ID", "Hostname", "IP", "MAC"]
+    print("\n" + tabulate(devices, headers=headers, tablefmt="fancy_grid") + "\n")
+
+
 def main_menu():
     """Menú principal del Network Monitor"""
     while True:
@@ -54,9 +65,9 @@ def main_menu():
             add_new_device()
             continue
 
-        print("\nDispositivos existentes:")
-        for idx, dev in enumerate(devices, start=1):
-            print(f"{idx}. {dev[1]} | IP: {dev[2]}")  # dev = (id, hostname, ip, mac)
+        # Mostrar tabla de dispositivos
+        print("Dispositivos existentes:")
+        show_devices_table(devices)
 
         print(f"{len(devices)+1}. Agregar nuevo dispositivo")
         print(f"{len(devices)+2}. Borrar base de datos (reset DB)")
