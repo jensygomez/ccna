@@ -5,14 +5,15 @@
 from modules.db_manager.init_device import add_new_device
 from modules.db_manager.database import (
     init_db, get_all_devices, get_credentials,
-    save_interfaces, show_device_summary
+    save_interfaces, show_device_summary_with_ip
 )
+from modules.db_manager.sync_manager import sync_all_devices  # 🔹 sincronización
 from modules.ssh_manager.ssh_handler import connect_and_run
 from modules.parsers.interfaces import parse_interfaces
 from modules.ssh_manager.interactive_cli import interactive_cli
 from modules.db_manager.reset_db import reset_database
-from modules.ssh_manager.ssh_native import ssh_native_session  # 👈 nuevo
-from tabulate import tabulate  # 👈 para mostrar tablas
+from modules.ssh_manager.ssh_native import ssh_native_session
+from tabulate import tabulate
 
 
 def configure_device(selected_device):
@@ -37,9 +38,8 @@ def configure_device(selected_device):
         # Guardar interfaces
         save_interfaces(ip, interfaces)
 
-        # Mostrar resumen
+        # Mostrar resumen solo interfaces con IP
         show_device_summary_with_ip(ip)
-
 
     except Exception as e:
         print(f"❌ Error al conectar con {ip}: {e}")
@@ -116,7 +116,8 @@ def main_menu():
 
 def main():
     print("🚀 Iniciando Network Monitor...\n")
-    init_db()  # Asegurarse de que la DB exista
+    init_db()              # Asegurarse de que la DB exista
+    sync_all_devices()      # 🔹 sincroniza todos los dispositivos automáticamente
     main_menu()
 
 

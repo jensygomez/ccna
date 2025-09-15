@@ -180,38 +180,31 @@ def show_device_summary(ip):
 
 
 def show_device_summary_with_ip(ip):
-    """Muestra un resumen del dispositivo y solo las interfaces que tienen IP"""
+    """Muestra IP, hostname, MAC y solo interfaces con IP asignada."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # Información del dispositivo
+    # Dispositivo
     cursor.execute("SELECT hostname, ip, mac FROM devices WHERE ip=?", (ip,))
     dev = cursor.fetchone()
     if dev:
         hostname, ip_addr, mac = dev
-        print(f"\n📌 Dispositivo: {hostname} | IP: {ip_addr} | MAC: {mac}\n")
-    else:
-        print("Dispositivo no encontrado en la DB.")
-        conn.close()
-        return
+        print(f"\n📌 {hostname} | IP: {ip_addr} | MAC: {mac}\n")
 
-    # Solo interfaces con IP asignada
+    # Interfaces con IP asignada
     cursor.execute("""
         SELECT name, ip_address, status, protocol
         FROM interfaces
-        WHERE device_id=(SELECT id FROM devices WHERE ip=?)
-        AND ip_address IS NOT NULL AND ip_address != ''
+        WHERE device_id=(SELECT id FROM devices WHERE ip=?) AND ip_address IS NOT NULL AND ip_address != ''
     """, (ip,))
     rows = cursor.fetchall()
     if not rows:
-        print(f"No hay interfaces con IP configurada para {hostname}\n")
+        print("⚠️ No hay interfaces con IP asignada.")
     else:
-        for intf_name, ip_intf, status, proto in rows:
-            print(f"💻 {hostname} con IP {ip_intf} está conectado en la interfaz {intf_name} ({status}/{proto})")
+        for intf in rows:
+            print(f"🔗 {hostname} con IP {intf[1]} está conectado en la interfaz {intf[0]} (status: {intf[2]}, protocol: {intf[3]})")
 
     conn.close()
-
-
 
 
 
@@ -282,3 +275,55 @@ def show_devices_table():
     
     headers = ["ID", "Hostname", "IP", "MAC"]
     print("\n" + tabulate(devices, headers=headers, tablefmt="fancy_grid") + "\n")
+    
+
+
+
+def sync_all_devices():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id, ip FROM devices")
+    devices = cursor.fetchall()
+
+    for device_id, ip in devices:
+        print(f"🔄 Sincronizando {ip}...")
+        actualizar_dispositivo(device_id, ip, conn)
+
+    conn.close()
+    print("✅ Sincronización completa.")
+
+
+def actualizar_dispositivo(device_id, device_ip, conn):
+    cursor = conn.cursor()
+
+    # Obtener hostname
+    hostname = get_hostname(device_ip)
+
+    # Actualizar hostname
+    cursor.execute("UPDATE devices SET hostname=? WHERE id=?", (hostname, device_id))
+
+    # Borrar interfaces previas
+    cursor.execute("DELETE FROM interfaces WHERE device_id=?", (device_id,))
+
+    # Obtener interfaces con IP
+    interfaces = get_interfaces_with_ip(device_ip)
+    for iface, ip in interfaces:
+        cursor.execute(
+            "INSERT INTO interfaces (device_id, name, ip) VALUES (?, ?, ?)",
+            (device_id, iface, ip)
+        )
+
+    # Descubrir vecinos (CDP o LLDP)
+    neighbors = get_neighbors(device_ip)
+    for n_ip, n_hostname in neighbors:
+        cursor.execute("SELECT id FROM devices WHERE ip=?", (n_ip,))
+        exists = cursor.fetchone()
+        if not exists:
+            print(f"➕ Agregando vecino {n_hostname} ({n_ip})")
+            cursor.execute(
+                "INSERT INTO devices (hostname, ip) VALUES (?, ?)",
+                (n_hostname, n_ip)
+            )
+
+    conn.commit()
