@@ -1,0 +1,6 @@
+devices:
+- ip: 192.168.18.110
+  name: bastion
+  password: bastion
+  type: switch
+  username: bastion
