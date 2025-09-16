@@ -65,6 +65,8 @@ def add_device():
     save_devices(data)
     print(f"✅ Dispositivo {name} agregado correctamente.")
 
+
+
 def update_device():
     data = load_devices()
     devices = data.get("devices", [])
@@ -72,6 +74,7 @@ def update_device():
         print("⚠️ No hay dispositivos para actualizar.")
         return
 
+    # Mostrar dispositivos
     print("\nDispositivos disponibles:")
     for i, dev in enumerate(devices, 1):
         print(f"{i}. {dev['name']} ({dev['type']}) - {dev['ip']}")
@@ -87,15 +90,34 @@ def update_device():
     device = devices[sel_index]
     print(f"\nActualizando {device['name']} (dejar vacío para no cambiar)")
 
+    # Campos editables
     name = input(f"Nombre [{device['name']}]: ") or device['name']
     ip = input(f"IP [{device['ip']}]: ") or device['ip']
     
-    print("\nSelecciona el tipo de dispositivo:")
-    dev_type = choose_device_type() or device['type']  # aunque siempre selecciona, se mantiene por si quieres ajustar
+    # Tipo de dispositivo: permitimos dejar vacío para no cambiar
+    tipos = ["router", "switch"]
+    print("\nSelecciona el tipo de dispositivo (Enter para no cambiar):")
+    for i, t in enumerate(tipos, 1):
+        print(f"{i}. {t} {'(actual)' if t == device['type'] else ''}")
+    choice = input("Ingresa el número: ")
+    if choice.strip() == "":
+        dev_type = device['type']
+    else:
+        try:
+            index = int(choice) - 1
+            if 0 <= index < len(tipos):
+                dev_type = tipos[index]
+            else:
+                print("❌ Número inválido, se mantiene el tipo anterior.")
+                dev_type = device['type']
+        except ValueError:
+            print("❌ Entrada inválida, se mantiene el tipo anterior.")
+            dev_type = device['type']
 
     username = input(f"Usuario [{device['username']}]: ") or device['username']
     password = input(f"Contraseña [{device['password']}]: ") or device['password']
 
+    # Guardar cambios
     devices[sel_index] = {
         "name": name,
         "ip": ip,
@@ -106,6 +128,8 @@ def update_device():
 
     save_devices(data)
     print(f"✅ Dispositivo {name} actualizado correctamente.")
+
+
 
 
 def delete_device():
