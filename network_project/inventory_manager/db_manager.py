@@ -4,7 +4,10 @@
 # network_project/inventory_manager/db_manager.py
 import sqlite3
 
-DB_FILE = "database_manager/net_devices.db"
+import os
+DB_FILE = os.path.join(os.path.dirname(__file__), "..", "database_manager", "cisco_inventory.db")
+DB_FILE = os.path.abspath(DB_FILE)
+
 
 # ---------------------------
 # Conexión
