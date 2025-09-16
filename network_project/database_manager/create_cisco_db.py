@@ -1,7 +1,8 @@
 # network_project/database_manager/create_cisco_db.py
+import os
 import sqlite3
 
-DB_FILE = "cisco_inventory.db"
+DB_FILE = os.path.join(os.path.dirname(__file__), "cisco_inventory.db")
 
 def create_tables():
     conn = sqlite3.connect(DB_FILE)
