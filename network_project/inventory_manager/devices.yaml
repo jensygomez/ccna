@@ -4,3 +4,8 @@ devices:
   password: bastion
   type: switch
   username: bastion
+- ip: 192.168.0.111
+  name: Sw-Core-111
+  password: Sw-Core-111
+  type: switch
+  username: Sw-Core-111
