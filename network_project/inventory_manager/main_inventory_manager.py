@@ -3,6 +3,20 @@ import os
 from tabulate import tabulate
 from inventory_manager import db_manager
 
+from database_manager import db_crud
+
+# Listar VLANs
+vlans = db_crud.list_records("vlans")
+for v in vlans:
+    print(v)
+
+# Editar VLAN
+db_crud.update_record("vlans", vlan_id=1, name="VLAN-10", number=10, description="TRUNK")
+
+# Eliminar VLAN
+db_crud.delete_record("vlans", record_id=1)
+
+
 # ---------------------------
 # Funciones auxiliares
 # ---------------------------
@@ -315,6 +329,11 @@ def manage_extra_attributes(device_id):
             print("✅ Atributo agregado correctamente.")
         else:
             print("❌ Opción inválida.")
+
+
+
+
+
 
 # ---------------------------
 # Menú principal

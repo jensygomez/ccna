@@ -11,6 +11,33 @@ DB_FILE = os.path.abspath(DB_FILE)
 def connect():
     return sqlite3.connect(DB_FILE)
 
+def update_record(table, record_id, **fields):
+    """
+    Actualiza cualquier registro de cualquier tabla.
+    `fields` es un diccionario {columna: valor}.
+    """
+    if not fields:
+        return
+    conn = connect()
+    cursor = conn.cursor()
+    set_clause = ", ".join(f"{k}=?" for k in fields.keys())
+    values = list(fields.values()) + [record_id]
+    cursor.execute(f"UPDATE {table} SET {set_clause} WHERE id=?", values)
+    conn.commit()
+    conn.close()
+
+def delete_record(table, record_id):
+    """
+    Elimina cualquier registro de cualquier tabla por ID.
+    """
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute(f"DELETE FROM {table} WHERE id=?", (record_id,))
+    conn.commit()
+    conn.close()
+
+
+
 # ---------------------------
 # DISPOSITIVOS
 # ---------------------------
