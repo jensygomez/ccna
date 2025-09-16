@@ -4,12 +4,7 @@ devices:
   password: bastion
   type: switch
   username: bastion
-- extra:
-    IP:
-    - 192.168.0.112: ''
-    Interface g1/0:
-    - IP: 192.168.0.112
-      status: UP
+- extra: {}
   ip: 192.168.0.111
   name: Sw-Core-111
   password: Sw-Core-111

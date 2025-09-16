@@ -3,6 +3,8 @@
 
 import yaml
 import os
+from tabulate import tabulate  # <- aquí
+
 
 DEVICES_FILE = "inventory_manager/devices.yaml"
 
@@ -69,6 +71,50 @@ def add_device():
 
 
 
+from inventory_manager.main_inventory_manager import load_devices, save_devices
+
+
+from tabulate import tabulate
+
+def edit_interfaces(interfaces):
+    """
+    Edita o agrega interfaces, busca por nombre.
+    """
+    while True:
+        if interfaces:
+            print("\nInterfaces actuales:")
+            for i, iface in enumerate(interfaces, 1):
+                print(f"{i}. {iface}")
+        else:
+            print("\nNo hay interfaces registradas.")
+
+        action = input("Agregar/Editar Interface? (a/e, Enter para salir): ").lower()
+        if action == "":
+            break
+        elif action == "a":
+            iface_name = input("Nombre Interface (g0/0,...): ")
+            ip = input("IP: ")
+            status = input("Status (UP/DOWN): ")
+            mode = input("Mode (trunk/access): ")
+            interfaces.append({"Interface": iface_name, "IP": ip, "status": status, "mode": mode})
+        elif action == "e":
+            search_name = input("Nombre de la Interface a editar: ").strip()
+            # Buscar la interfaz por nombre
+            found = False
+            for iface in interfaces:
+                if iface.get("Interface") == search_name:
+                    found = True
+                    iface['IP'] = input(f"IP [{iface.get('IP','')}]: ") or iface.get('IP','')
+                    iface['status'] = input(f"Status [{iface.get('status','')}]: ") or iface.get('status','')
+                    iface['mode'] = input(f"Mode [{iface.get('mode','')}]: ") or iface.get('mode','')
+                    break
+            if not found:
+                print("❌ No se encontró esa interfaz.")
+        else:
+            print("❌ Opción inválida.")
+    return interfaces
+
+
 def update_device():
     data = load_devices()
     devices = data.get("devices", [])
@@ -76,46 +122,91 @@ def update_device():
         print("⚠️ No hay dispositivos para actualizar.")
         return
 
+    # Mostrar dispositivos
     print("\nDispositivos disponibles:")
     for i, dev in enumerate(devices, 1):
         print(f"{i}. {dev['name']} ({dev['type']}) - {dev['ip']}")
-    sel_index = int(input("Selecciona el número del dispositivo a actualizar: ")) - 1
+    
+    sel = input("Selecciona el número del dispositivo a actualizar: ")
+    try:
+        sel_index = int(sel) - 1
+        if sel_index < 0 or sel_index >= len(devices):
+            raise ValueError
+    except ValueError:
+        print("❌ Selección inválida.")
+        return
+
     device = devices[sel_index]
+    extra = device.get("extra", {})
 
-    # Campos básicos con opción de mantener
-    name = input(f"Nombre [{device['name']}]: ") or device['name']
-    ip = input(f"IP [{device['ip']}]: ") or device['ip']
-    username = input(f"Usuario [{device['username']}]: ") or device['username']
-    password = input(f"Contraseña [{device['password']}]: ") or device['password']
+    while True:
+        # Mostrar resumen del dispositivo en tabla
+        table = [["Atributo", "Valor"]]
+        table.append(["Nombre", device['name']])
+        table.append(["IP Gestión", device['ip']])
+        table.append(["Usuario", device['username']])
+        table.append(["Contraseña", device['password']])
+        table.append(["Tipo", device['type']])
+        for key, items in extra.items():
+            val_str = ""
+            for item in items:
+                if isinstance(item, dict):
+                    val_str += ", ".join(f"{k}={v}" for k, v in item.items()) + "\n"
+                else:
+                    val_str += str(item) + "\n"
+            table.append([key, val_str.strip()])
+        print("\n=== Información actual del dispositivo ===")
+        print(tabulate(table, headers="firstrow", tablefmt="grid"))
 
-    # Tipo de dispositivo
-    tipos = ["router", "switch"]
-    print("\nSelecciona el tipo de dispositivo (Enter para no cambiar):")
-    for i, t in enumerate(tipos, 1):
-        print(f"{i}. {t} {'(actual)' if t == device['type'] else ''}")
-    choice = input("Ingresa el número: ")
-    dev_type = device['type']  # por defecto
-    if choice.strip() != "":
-        index = int(choice) - 1
-        if 0 <= index < len(tipos):
-            dev_type = tipos[index]
+        # Menú predefinido
+        print("\n¿Qué quieres actualizar?")
+        print("1 - Nombre")
+        print("2 - VLANs")
+        print("3 - Interfaces")
+        print("0 - Salir")
+        choice = input("Selecciona una opción: ")
 
-    # Campos dinámicos jerárquicos
-    extra = edit_nested_fields(existing_extra=device.get('extra', {}))
+        if choice == "1":
+            device['name'] = input(f"Nombre [{device['name']}]: ") or device['name']
 
-    # Guardar cambios
-    devices[sel_index] = {
-        "name": name,
-        "ip": ip,
-        "type": dev_type,
-        "username": username,
-        "password": password,
-        "extra": extra
-    }
+        elif choice == "2":
+            vlans = extra.get("vlan", [])
+            print("\nVLANs actuales:")
+            for i, v in enumerate(vlans, 1):
+                print(f"{i}. {v}")
+            sub_choice = input("Agregar/Editar VLAN? (a/e, Enter para salir): ").lower()
+            if sub_choice == "a":
+                name = input("Nombre VLAN: ")
+                numero = input("Número VLAN: ")
+                vlans.append({"name": name, "numero": numero})
+            elif sub_choice == "e":
+                search_idx = input("Número de VLAN a editar: ").strip()
+                try:
+                    idx = int(search_idx) - 1
+                    if 0 <= idx < len(vlans):
+                        v = vlans[idx]
+                        v['name'] = input(f"Nombre [{v['name']}]: ") or v['name']
+                        v['numero'] = input(f"Número [{v['numero']}]: ") or v['numero']
+                    else:
+                        print("❌ VLAN inválida")
+                except ValueError:
+                    print("❌ Entrada inválida")
+            extra["vlan"] = vlans
 
+        elif choice == "3":
+            interfaces = extra.get("interfaces", [])
+            interfaces = edit_interfaces(interfaces)
+            extra["interfaces"] = interfaces
+
+        elif choice == "0":
+            break
+        else:
+            print("❌ Opción inválida.")
+
+    device['extra'] = extra
+    devices[sel_index] = device
     save_devices(data)
-    print(f"✅ Dispositivo {name} actualizado correctamente.")
-
+    print(f"✅ Dispositivo {device['name']} actualizado correctamente.")
 
 
 
@@ -152,12 +243,29 @@ def delete_device():
 def list_devices():
     data = load_devices()
     devices = data.get("devices", [])
+    
     if not devices:
         print("⚠️ No hay dispositivos en el inventario.")
         return
-    print("\n=== 📋 Dispositivos en inventario ===")
+
+    table = []
+    headers = ["#", "Name", "Type", "IP Gestión", "Username", "Password", "Extra"]
+
     for i, dev in enumerate(devices, 1):
-        print(f"{i}. {dev['name']} ({dev['type']}) - {dev['ip']}")
+        extra_str = ""
+        extra = dev.get("extra", {})
+        for key, items in extra.items():
+            extra_str += f"{key}:\n"
+            for item in items:
+                if isinstance(item, dict):
+                    extra_str += "  " + ", ".join(f"{k}={v}" for k, v in item.items()) + "\n"
+                else:
+                    extra_str += f"  {item}\n"
+        table.append([i, dev['name'], dev['type'], dev['ip'], dev['username'], dev['password'], extra_str.strip()])
+
+    print("\n=== 📋 Dispositivos en inventario ===")
+    print(tabulate(table, headers=headers, tablefmt="grid"))
+
 
 
 def edit_nested_fields(existing_extra=None):
@@ -206,6 +314,58 @@ def edit_nested_fields(existing_extra=None):
             extra[key] = items
 
     return extra
+
+
+def edit_interfaces(existing_interfaces=None):
+    """
+    existing_interfaces: lista de diccionarios con interfaces actuales
+    """
+    interfaces = existing_interfaces.copy() if existing_interfaces else []
+
+    while True:
+        if interfaces:
+            print("\nInterfaces actuales:")
+            for intf in interfaces:
+                name = intf.get("Interface", "N/A")
+                attrs = ", ".join(f"{k}={v}" for k, v in intf.items() if k != "Interface")
+                print(f"- {name}: {attrs}")
+        else:
+            print("\nNo hay interfaces registradas.")
+
+        choice = input("Escribe el nombre de la interfaz a editar o Enter para salir: ").strip()
+        if choice == "":
+            break
+
+        # Buscar si existe
+        found = None
+        for intf in interfaces:
+            if intf.get("Interface") == choice:
+                found = intf
+                break
+
+        if found:
+            print(f"\nEditando interfaz {choice} (dejar vacío para no cambiar)")
+            for attr, value in found.items():
+                if attr == "Interface":
+                    continue
+                new_val = input(f"{attr} [{value}]: ").strip()
+                if new_val != "":
+                    found[attr] = new_val
+        else:
+            print(f"\nInterfaz {choice} no encontrada. Se agregará como nueva.")
+            new_intf = {"Interface": choice}
+            while True:
+                attr = input("Atributo (Enter para terminar este interfaz): ").strip()
+                if attr == "":
+                    break
+                val = input(f"Valor de '{attr}': ").strip()
+                new_intf[attr] = val
+            interfaces.append(new_intf)
+
+    return interfaces
+
+
+
 
 
 
