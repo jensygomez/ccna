@@ -4,6 +4,10 @@
 import yaml
 import os
 from tabulate import tabulate  # <- aquí
+from inventory_manager.inventory_utils import mostrar_dispositivos
+
+
+
 
 
 DEVICES_FILE = "inventory_manager/devices.yaml"
@@ -71,10 +75,9 @@ def add_device():
 
 
 
-from inventory_manager.main_inventory_manager import load_devices, save_devices
 
 
-from tabulate import tabulate
+
 
 def edit_interfaces(interfaces):
     """
@@ -122,10 +125,9 @@ def update_device():
         print("⚠️ No hay dispositivos para actualizar.")
         return
 
-    # Mostrar dispositivos
-    print("\nDispositivos disponibles:")
-    for i, dev in enumerate(devices, 1):
-        print(f"{i}. {dev['name']} ({dev['type']}) - {dev['ip']}")
+    from inventory_manager.inventory_utils import mostrar_dispositivos
+    mostrar_dispositivos(devices)
+
     
     sel = input("Selecciona el número del dispositivo a actualizar: ")
     try:
@@ -217,10 +219,10 @@ def delete_device():
         print("⚠️ No hay dispositivos para eliminar.")
         return
 
-    print("\nDispositivos disponibles:")
-    for i, dev in enumerate(devices, 1):
-        print(f"{i}. {dev['name']} ({dev['type']}) - {dev['ip']}")
+
+    mostrar_dispositivos(devices)
     print("0. Volver al menú sin eliminar")
+
 
     sel = input("Selecciona el número del dispositivo a eliminar: ")
     if sel == "0":
@@ -240,31 +242,8 @@ def delete_device():
     print(f"✅ Dispositivo {removed['name']} eliminado correctamente.")
 
 
-def list_devices():
-    data = load_devices()
-    devices = data.get("devices", [])
-    
-    if not devices:
-        print("⚠️ No hay dispositivos en el inventario.")
-        return
 
-    table = []
-    headers = ["#", "Name", "Type", "IP Gestión", "Username", "Password", "Extra"]
 
-    for i, dev in enumerate(devices, 1):
-        extra_str = ""
-        extra = dev.get("extra", {})
-        for key, items in extra.items():
-            extra_str += f"{key}:\n"
-            for item in items:
-                if isinstance(item, dict):
-                    extra_str += "  " + ", ".join(f"{k}={v}" for k, v in item.items()) + "\n"
-                else:
-                    extra_str += f"  {item}\n"
-        table.append([i, dev['name'], dev['type'], dev['ip'], dev['username'], dev['password'], extra_str.strip()])
-
-    print("\n=== 📋 Dispositivos en inventario ===")
-    print(tabulate(table, headers=headers, tablefmt="grid"))
 
 
 
