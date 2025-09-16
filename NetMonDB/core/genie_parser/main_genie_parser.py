@@ -11,6 +11,7 @@ def genie_main(raw_output):
         print("⚠️ No hay output para parsear.")
         return None
 
-    print("🧩 Parseando datos con Genie...")
-    parsed_data = parse_show_with_genie(raw_output, "show running-config")
+    print("🧩 Parseando datos con Genie (genérico)...")
+    parsed_data = parse_show_with_genie(raw_output)
     return parsed_data
+

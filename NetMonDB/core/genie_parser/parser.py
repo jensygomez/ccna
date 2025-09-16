@@ -1,11 +1,14 @@
 # NetMonDB/core/genie_parser/parser.py
 
-from genie.conf.base import Device
-from genie.libs.parser.ios.show_running_config import ShowRunningConfig
+# core/genie_parser/parser.py
+def parse_show_with_genie(output, command="show running-config"):
+    """
+    Función genérica para devolver el output en formato dict.
+    Se puede extender luego para parsers específicos.
+    """
+    if not output:
+        return {}
 
-def parse_show_with_genie(output, command):
-    """
-    Aquí se puede extender para usar Genie y convertir output a dict/JSON.
-    """
-    # Placeholder simple: devuelve output en dict
-    return {"show_running_config": output}
+    # Simple: cada línea en una lista dentro del dict
+    lines = output.splitlines()
+    return {"show_running_config": lines}

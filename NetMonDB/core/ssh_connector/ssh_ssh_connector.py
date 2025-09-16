@@ -1,19 +1,19 @@
 # NetMonDB/core/ssh_connector/ssh_ssh_connector.py
 
+# core/ssh_connector/ssh_ssh_connector.py
 from netmiko import ConnectHandler
 
-def connect_device(host, username, password, command):
+def connect_and_get_running_config(ip, username, password):
     device = {
         "device_type": "cisco_ios",
-        "host": host,
+        "host": ip,
         "username": username,
         "password": password,
     }
-    try:
-        conn = ConnectHandler(**device)
-        output = conn.send_command(command)
-        conn.disconnect()
-        return output
-    except Exception as e:
-        print(f"❌ Error al conectar al dispositivo: {e}")
-        return None
+
+    print(f"🔌 Conectando a {ip} vía SSH...")
+    net_connect = ConnectHandler(**device)
+    output = net_connect.send_command("show running-config")
+    net_connect.disconnect()
+    print("✅ Conexión finalizada.")
+    return output

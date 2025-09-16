@@ -1,19 +1,17 @@
 # NetMonDB/core/ssh_connector/main_ssh_connector.py
 
 
+# core/ssh_connector/main_ssh_connector.py
+from .ssh_ssh_connector import connect_and_get_running_config
 
-from .ssh_ssh_connector import connect_device
-
-def ssh_main():
+def ssh_main(device_info):
     """
-    Función principal del módulo SSH.
-    Devuelve el output crudo del dispositivo.
+    Función principal de SSH Connector
+    Recibe device_info como dict y devuelve el show running-config
     """
-    print("🔌 Conectando al dispositivo vía SSH...")
-    # Aquí puedes pedir IP/usuario/contraseña o leer de .env
-    host = input("IP del dispositivo: ")
-    user = input("Usuario: ")
-    password = input("Contraseña: ")
-
-    output = connect_device(host, user, password, "show running-config")
+    output = connect_and_get_running_config(
+        ip=device_info['ip'],
+        username=device_info['username'],
+        password=device_info['password']
+    )
     return output
