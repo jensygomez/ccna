@@ -7,5 +7,5 @@ devices:
 - ip: 192.168.0.111
   name: Sw-Core-111
   password: Sw-Core-111
-  type: switch
+  type: router
   username: Sw-Core-111
