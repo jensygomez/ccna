@@ -118,6 +118,7 @@ def edit_interfaces(interfaces):
     return interfaces
 
 
+
 def update_device():
     data = load_devices()
     devices = data.get("devices", [])
@@ -125,10 +126,8 @@ def update_device():
         print("⚠️ No hay dispositivos para actualizar.")
         return
 
-    from inventory_manager.inventory_utils import mostrar_dispositivos
-    mostrar_dispositivos(devices)
+    mostrar_dispositivos({d['name']: d for d in devices})
 
-    
     sel = input("Selecciona el número del dispositivo a actualizar: ")
     try:
         sel_index = int(sel) - 1
@@ -142,7 +141,7 @@ def update_device():
     extra = device.get("extra", {})
 
     while True:
-        # Mostrar resumen del dispositivo en tabla
+        # Construir tabla resumen del dispositivo
         table = [["Atributo", "Valor"]]
         table.append(["Nombre", device['name']])
         table.append(["IP Gestión", device['ip']])
@@ -160,48 +159,43 @@ def update_device():
         print("\n=== Información actual del dispositivo ===")
         print(tabulate(table, headers="firstrow", tablefmt="grid"))
 
-        # Menú predefinido
-        print("\n¿Qué quieres actualizar?")
-        print("1 - Nombre")
-        print("2 - VLANs")
-        print("3 - Interfaces")
+        # Menú dinámico
+        existing_keys = list(extra.keys())
+        print("\n¿Qué atributo quieres actualizar o agregar?")
+        for i, key in enumerate(existing_keys, 1):
+            print(f"{i} - {key}")
+        print(f"{len(existing_keys)+1} - Crear nuevo atributo")
         print("0 - Salir")
-        choice = input("Selecciona una opción: ")
 
-        if choice == "1":
-            device['name'] = input(f"Nombre [{device['name']}]: ") or device['name']
-
-        elif choice == "2":
-            vlans = extra.get("vlan", [])
-            print("\nVLANs actuales:")
-            for i, v in enumerate(vlans, 1):
-                print(f"{i}. {v}")
-            sub_choice = input("Agregar/Editar VLAN? (a/e, Enter para salir): ").lower()
-            if sub_choice == "a":
-                name = input("Nombre VLAN: ")
-                numero = input("Número VLAN: ")
-                vlans.append({"name": name, "numero": numero})
-            elif sub_choice == "e":
-                search_idx = input("Número de VLAN a editar: ").strip()
-                try:
-                    idx = int(search_idx) - 1
-                    if 0 <= idx < len(vlans):
-                        v = vlans[idx]
-                        v['name'] = input(f"Nombre [{v['name']}]: ") or v['name']
-                        v['numero'] = input(f"Número [{v['numero']}]: ") or v['numero']
-                    else:
-                        print("❌ VLAN inválida")
-                except ValueError:
-                    print("❌ Entrada inválida")
-            extra["vlan"] = vlans
-
-        elif choice == "3":
-            interfaces = extra.get("interfaces", [])
-            interfaces = edit_interfaces(interfaces)
-            extra["interfaces"] = interfaces
-
-        elif choice == "0":
+        choice = input("Selecciona una opción: ").strip()
+        if choice == "0":
             break
+
+        # Determinar acción
+        try:
+            choice_idx = int(choice) - 1
+        except ValueError:
+            print("❌ Entrada inválida")
+            continue
+
+        if choice_idx == len(existing_keys):
+            # Crear nuevo atributo
+            new_attr = input("Nombre del nuevo atributo: ").strip()
+            if not new_attr:
+                print("❌ Nombre vacío, cancelado")
+                continue
+            extra[new_attr] = edit_nested_fields()
+        elif 0 <= choice_idx < len(existing_keys):
+            # Editar atributo existente
+            attr_key = existing_keys[choice_idx]
+            if attr_key.lower() == "interfaces":
+                interfaces = extra.get("interfaces", [])
+                interfaces = edit_interfaces(interfaces)
+                extra["interfaces"] = interfaces
+            else:
+                items = extra.get(attr_key, [])
+                items = edit_nested_fields(items)
+                extra[attr_key] = items
         else:
             print("❌ Opción inválida.")
 
@@ -209,6 +203,9 @@ def update_device():
     devices[sel_index] = device
     save_devices(data)
     print(f"✅ Dispositivo {device['name']} actualizado correctamente.")
+
+
+
 
 
 
@@ -344,6 +341,18 @@ def edit_interfaces(existing_interfaces=None):
     return interfaces
 
 
+
+# ---------------------------
+# Función para listar dispositivos
+# ---------------------------
+def list_devices():
+    data = load_devices()
+    devices_list = data.get("devices", [])
+    if not devices_list:
+        print("⚠️ No hay dispositivos en inventario.")
+        return
+    devices_dict = {d['name']: d for d in devices_list}
+    mostrar_dispositivos(devices_dict)
 
 
 

@@ -1,13 +1,14 @@
 devices:
-- ip: 192.168.18.110
+- extra:
+    Interface: {}
+  ip: 192.168.18.110
   name: bastion
   password: bastion
   type: switch
   username: bastion
 - extra:
-    interfaces:
-    - IP: 192.168.0.111
-      Interface: g3/3
+    Interface: {}
+    Vlan: {}
   ip: 192.168.0.111
   name: Sw-Core-111
   password: Sw-Core-111
