@@ -1,14 +1,8 @@
 # network_project/database_manager/db_crud.py
 
 
-from database_manager import db_manager
-
-
-
-
-# ---------------------------
-# CRUD genérico para cualquier tabla
-# ---------------------------
+# network_project/database_manager/db_crud.py
+from database_manager.db_manager import connect  # Importar connect correctamente
 
 # ---------------------------
 # CRUD genérico para cualquier tabla

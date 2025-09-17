@@ -3,10 +3,7 @@ import os
 from tabulate import tabulate
 from database_manager import db_crud
 
-
-
-# Listar VLANs
-vlans = db_crud.list_records("vlans")
+vlans = db_crud.list_all("vlans")  # list_all es la función correcta
 for v in vlans:
     print(v)
 
