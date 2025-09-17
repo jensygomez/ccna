@@ -1,5 +1,7 @@
 # network_project/inventory_manager/main_inventory_manager.py
-from inventory_manager import devices
+from . import devices
+from . import vlans
+
 
 def manage_inventory_menu():
     while True:
