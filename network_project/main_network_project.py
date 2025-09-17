@@ -1,7 +1,5 @@
 # network_project/main_network_project.py
 
-# network_project/main_network_project.py
-
 from inventory_manager.main_inventory_manager import manage_inventory_menu
 
 def main():
