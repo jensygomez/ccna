@@ -1,9 +1,9 @@
 # network_project/inventory_manager/main_inventory_manager.py
 import os
 from tabulate import tabulate
-from inventory_manager import db_manager
-
 from database_manager import db_crud
+
+
 
 # Listar VLANs
 vlans = db_crud.list_records("vlans")
@@ -51,6 +51,48 @@ def select_from_list(items, prompt="Selecciona un elemento:"):
     except ValueError:
         print("❌ Selección inválida.")
         return None
+    
+    
+    
+# ---------------------------
+# CRUD genérico para cualquier tabla
+# ---------------------------
+def edit_record(table):
+    rows = db_crud.list_all(table)
+    if not rows:
+        print(f"⚠️ No hay registros en {table}.")
+        return
+    headers = [desc[0] for desc in db_crud.connect().cursor().execute(f"PRAGMA table_info({table})")]
+    items = [str(row[1]) if len(row) > 1 else str(row[0]) for row in rows]
+    idx = select_from_list(items, f"Selecciona un registro de {table} para editar:")
+    if idx is None:
+        return
+    record = rows[idx]
+    record_id = record[0]
+    updated_fields = {}
+    for i, col_name in enumerate(headers[1:], start=1):
+        new_val = input(f"{col_name} [{record[i]}]: ").strip()
+        if new_val:
+            updated_fields[col_name] = new_val
+    if updated_fields:
+        db_crud.update_by_id(table, record_id, **updated_fields)
+        print(f"✅ Registro de {table} actualizado correctamente.")
+    else:
+        print("⚠️ No se realizaron cambios.")
+
+def delete_record(table):
+    rows = db_crud.list_all(table)
+    if not rows:
+        print(f"⚠️ No hay registros en {table}.")
+        return
+    items = [str(row[1]) if len(row) > 1 else str(row[0]) for row in rows]
+    idx = select_from_list(items, f"Selecciona un registro de {table} para eliminar:")
+    if idx is None:
+        return
+    record_id = rows[idx][0]
+    db_crud.delete_by_id(table, record_id)
+    print(f"✅ Registro de {table} eliminado correctamente.")
+
 
 # ---------------------------
 # CRUD Dispositivos
@@ -166,34 +208,87 @@ def manage_vlans():
             print(tabulate(table, headers="firstrow", tablefmt="grid"))
         else:
             print("⚠️ No hay VLANs registradas.")
+
         print("\nOpciones:")
         print("1. Agregar VLAN")
-        print("2. Asignar VLAN a dispositivo")
+        print("2. Editar VLAN")
+        print("3. Eliminar VLAN")
+        print("4. Asignar VLAN a dispositivo")
         print("0. Volver")
+
         choice = input("Selecciona una opción: ").strip()
+
         if choice == "0":
             break
         elif choice == "1":
-            name = input("Nombre VLAN: ")
-            number = input("Número VLAN: ")
-            desc = input("Descripción: ")
+            name = input("Nombre VLAN: ").strip()
+            number = input("Número VLAN: ").strip()
+            desc = input("Descripción: ").strip()
             db_manager.add_vlan(name, number, desc)
             print(f"✅ VLAN {name} agregada correctamente.")
         elif choice == "2":
+            # Selecciona la VLAN a editar
+            if not vlans:
+                print("⚠️ No hay VLANs para editar.")
+                continue
+            vlan_idx = select_from_list([v[1] for v in vlans], "Selecciona VLAN a editar:")
+            if vlan_idx is None:
+                continue
+            vlan_id = vlans[vlan_idx][0]
+            current = vlans[vlan_idx]
+            # Pedir nuevos valores (dejar vacío para mantener)
+            new_name = input(f"Nombre [{current[1]}]: ").strip()
+            new_number = input(f"Número [{current[2]}]: ").strip()
+            new_desc = input(f"Descripción [{current[3]}]: ").strip()
+            updated_fields = {}
+            if new_name:
+                updated_fields["name"] = new_name
+            if new_number:
+                updated_fields["number"] = new_number
+            if new_desc:
+                updated_fields["description"] = new_desc
+            if updated_fields:
+                db_crud.update_by_id("vlans", vlan_id, **updated_fields)
+                print(f"✅ VLAN {current[1]} actualizada correctamente.")
+            else:
+                print("⚠️ No se realizaron cambios.")
+        elif choice == "3":
+            # Selecciona la VLAN a eliminar
+            if not vlans:
+                print("⚠️ No hay VLANs para eliminar.")
+                continue
+            vlan_idx = select_from_list([v[1] for v in vlans], "Selecciona VLAN a eliminar:")
+            if vlan_idx is None:
+                continue
+            vlan_id = vlans[vlan_idx][0]
+            db_crud.delete_by_id("vlans", vlan_id)
+            print(f"✅ VLAN {vlans[vlan_idx][1]} eliminada correctamente.")
+        elif choice == "4":
+            # Asignar VLAN a dispositivo
             devices = db_manager.list_devices()
+            if not devices:
+                print("⚠️ No hay dispositivos disponibles.")
+                continue
             dev_idx = select_from_list([d[1] for d in devices], "Selecciona dispositivo:")
             if dev_idx is None:
                 continue
             device_id = devices[dev_idx][0]
+
+            if not vlans:
+                print("⚠️ No hay VLANs para asignar.")
+                continue
             vlan_idx = select_from_list([v[1] for v in vlans], "Selecciona VLAN:")
             if vlan_idx is None:
                 continue
             vlan_id = vlans[vlan_idx][0]
+
             iface = input("Interfaces (separadas por coma, opcional): ").strip()
             db_manager.assign_vlan_to_device(device_id, vlan_id, iface)
             print(f"✅ VLAN asignada correctamente al dispositivo.")
         else:
             print("❌ Opción inválida.")
+
+
 
 # ---------------------------
 # CRUD Protocolos y asignación

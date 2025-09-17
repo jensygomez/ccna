@@ -1,7 +1,6 @@
 # network_project/inventory_manager/db_manager.py
 
 
-# network_project/inventory_manager/db_manager.py
 import sqlite3
 import os
 

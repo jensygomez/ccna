@@ -1,52 +1,47 @@
 # network_project/database_manager/db_crud.py
 
 
-# db_crud.py
-from .db_manager import connect
+from database_manager import db_manager
+
+
+
 
 # ---------------------------
-# FUNCIONES GENÉRICAS CRUD
+# CRUD genérico para cualquier tabla
 # ---------------------------
 
-def list_records(table, columns="*", where=None):
-    """
-    Lista registros de cualquier tabla.
-    `columns` -> lista de columnas o "*" para todo
-    `where` -> condición opcional, ejemplo: "id=1"
-    """
+# ---------------------------
+# CRUD genérico para cualquier tabla
+# ---------------------------
+def list_all(table):
     conn = connect()
     cursor = conn.cursor()
-    query = f"SELECT {columns} FROM {table}"
-    if where:
-        query += f" WHERE {where}"
-    cursor.execute(query)
-    results = cursor.fetchall()
+    cursor.execute(f"SELECT * FROM {table}")
+    rows = cursor.fetchall()
     conn.close()
-    return results
+    return rows
 
+def get_by_id(table, record_id):
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT * FROM {table} WHERE id=?", (record_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return row
 
-def update_record(table, record_id, **fields):
-    """
-    Actualiza cualquier registro de cualquier tabla.
-    `table` -> nombre de la tabla
-    `record_id` -> id del registro
-    `fields` -> diccionario {columna: valor}
-    """
-    if not fields:
+def update_by_id(table, record_id, **kwargs):
+    if not kwargs:
         return
     conn = connect()
     cursor = conn.cursor()
-    set_clause = ", ".join(f"{k}=?" for k in fields.keys())
-    values = list(fields.values()) + [record_id]
-    cursor.execute(f"UPDATE {table} SET {set_clause} WHERE id=?", values)
+    fields = [f"{k}=?" for k in kwargs.keys()]
+    values = list(kwargs.values())
+    values.append(record_id)
+    cursor.execute(f"UPDATE {table} SET {', '.join(fields)} WHERE id=?", values)
     conn.commit()
     conn.close()
 
-
-def delete_record(table, record_id):
-    """
-    Elimina cualquier registro de cualquier tabla por ID.
-    """
+def delete_by_id(table, record_id):
     conn = connect()
     cursor = conn.cursor()
     cursor.execute(f"DELETE FROM {table} WHERE id=?", (record_id,))
