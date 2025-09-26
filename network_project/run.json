@@ -1,0 +1,58 @@
+{
+    "hostname": "bastion",
+    "interfaces": [
+        {
+            "name": "GigabitEthernet0/0",
+            "config": [
+                "description Conexion WAN",
+                "ip address 192.168.18.110 255.255.255.0",
+                "ip nat outside",
+                "ip virtual-reassembly in",
+                "duplex auto",
+                "speed auto",
+                "media-type rj45"
+            ]
+        },
+        {
+            "name": "GigabitEthernet0/1",
+            "config": [
+                "description LAN Interna - Red 192.168.10.0/24",
+                "ip address 192.168.10.1 255.255.255.0",
+                "ip nat inside",
+                "ip virtual-reassembly in",
+                "duplex auto",
+                "speed auto",
+                "media-type rj45"
+            ]
+        },
+        {
+            "name": "GigabitEthernet0/2",
+            "config": [
+                "description LAN DMZ - Red 192.168.20.0/24",
+                "ip address 192.168.20.1 255.255.255.0",
+                "ip nat inside",
+                "ip virtual-reassembly in",
+                "duplex auto",
+                "speed auto",
+                "media-type rj45"
+            ]
+        },
+        {
+            "name": "GigabitEthernet0/3",
+            "config": [
+                "description Reservada para futura expansion",
+                "no ip address",
+                "shutdown",
+                "duplex auto",
+                "speed auto",
+                "media-type rj45"
+            ]
+        }
+    ],
+    "static_routes": [
+        "ip route 0.0.0.0 0.0.0.0 192.168.18.1"
+    ],
+    "acls": [],
+    "routing_protocols": {},
+    "vlans": []
+}
